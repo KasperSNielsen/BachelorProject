@@ -5,7 +5,7 @@ bytes!(Nonce, IVSIZE);
 
 bytes!(Tau, 8);
 
-public_nat_mod!(
+public_nat_mod!( //Custom Macro - defining a newtype with some functions - well defined macro's have library functions built in
     type_name: Scalar,
     type_of_canvas: ScalarCanvas,
     bit_size_of_field: 256,
