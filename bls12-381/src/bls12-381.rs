@@ -103,7 +103,7 @@ pub fn g1double(p: G1) -> G1
 
 pub fn g1mult(m: Scalar, p: G1) -> G1
 {
-    let n = 256;
+    let n = 255;
     let k = n - most_significant_bit(m, n);
     let mut t = p;
     for i in k..n { //starting from second most significant bit
@@ -153,7 +153,7 @@ pub fn g2double(p: G2) -> G2
 
 pub fn g2mult(m: Scalar, p: G2) -> G2
 {
-    let n = 256;
+    let n = 255;
     let k = n - most_significant_bit(m, n);
     let mut t = p;
     for i in k..n { //starting from second most significant bit
