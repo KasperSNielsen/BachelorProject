@@ -9,6 +9,8 @@ public_nat_mod!( //Custom Macro - defining a newtype with some functions - well 
     modulo_value: "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab" //0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
 );
 
+
+
 bytes!(SerializedFp, 48); //Represent points as arrays for easier testing
 
 public_nat_mod!( //Custom Macro - defining a new type with some functions - well defined macro's have library functions built in
@@ -35,7 +37,7 @@ fn most_significant_bit(m: Scalar, n: usize) -> usize
 }
 
 type G1 = (Fp, Fp);
-type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u^2 = -1
+pub type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u^2 = -1
 type G2 = (Fp2, Fp2);
 
 /* Arithmetic for FP2 elements */

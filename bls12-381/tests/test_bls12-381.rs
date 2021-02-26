@@ -1,6 +1,13 @@
 use bls12_381::*;
 use hacspec_lib::*;
 
+#[cfg(test)]
+extern crate quickcheck;
+use quickcheck::*;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 //Helper function: Takes LE u64 array input and retuns an FP element. So we can 'steal' tests from https://github.com/zkcrypto/bls12_381
 fn fpfromarray(a: [u64; 6]) -> Fp {
     let mut b: [u8; 48] = [0; 48];
@@ -10,9 +17,27 @@ fn fpfromarray(a: [u64; 6]) -> Fp {
     }
     Fp::from_byte_seq_le(SerializedFp::from_public_slice(&b))
 }
+/* Property Based Testing features, needed to perform testing */
+
+//Wrapper around Fp, so we can implement arbitrary
+#[derive(Debug)]
+#[derive(Clone)]
+struct TestFp(Fp);
+
+/* Arbitrary Implementation used for Property Based Tests */
+#[cfg(test)]
+impl Arbitrary for TestFp {
+    fn arbitrary(g: &mut Gen) -> TestFp {
+        let mut a: [u64; 6] = [0; 6];
+        for i in 0..6 {
+            a[i] = u64::arbitrary(g);
+        }
+        TestFp(fpfromarray(a))
+    }
+}
 
 #[test]
-fn test_add_sub() {
+fn test_add_neg() {
     let b = (fpfromarray([
         0xa1e0_9175_a4d2_c1fe,
         0x8b33_acfc_204e_ff12,
@@ -31,6 +56,13 @@ fn test_add_sub() {
     ]));
     let a = fp2neg(b);
     assert_eq!(fp2add(a, b), fp2fromfp(Fp::ZERO()));
+}
+
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_prop_add_neg(a: (TestFp, TestFp)) -> bool {
+    let a = (a.0.0, a.1.0);
+    let b = fp2neg(a);
+    fp2fromfp(Fp::ZERO()) == fp2add(a, b)
 }
 
 
@@ -54,6 +86,13 @@ fn test_mul_inv() {
     ]));
     let a = fp2inv(b);
     assert_eq!(fp2mul(a, b), fp2fromfp(Fp::ONE()));
+}
+//Generating random numbers, taking inverse and multiplying - checking that random element times inverse gives one
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_prop_mul_inv(a: (TestFp, TestFp)) -> bool {
+    let a = (a.0.0, a.1.0);
+    let b = fp2inv(a);
+    fp2fromfp(Fp::ONE()) == fp2mul(a, b)
 }
 
 //G1 tests
