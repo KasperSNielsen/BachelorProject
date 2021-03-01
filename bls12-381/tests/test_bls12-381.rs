@@ -1,3 +1,6 @@
+/* TO DO: Property Tests with associativity and distributive law */
+
+
 use bls12_381::*;
 use hacspec_lib::*;
 
@@ -23,6 +26,9 @@ fn fpfromarray(a: [u64; 6]) -> Fp {
 #[derive(Debug)]
 #[derive(Clone)]
 struct TestFp(Fp);
+type TestFp2 = (TestFp, TestFp);
+type TestFp6 = (TestFp2, TestFp2, TestFp2);
+type TestFp12 = (TestFp6, TestFp6);
 
 /* Arbitrary Implementation used for Property Based Tests */
 #[cfg(test)]
@@ -35,6 +41,18 @@ impl Arbitrary for TestFp {
         TestFp(fpfromarray(a))
     }
 }
+
+fn fromteststruct2(a: TestFp2) -> Fp2 {
+    (a.0.0, a.1.0)
+}
+
+fn fromteststruct6(a :TestFp6) -> Fp6 {
+    (fromteststruct2(a.0), fromteststruct2(a.1), fromteststruct2(a.2))
+}
+fn fromteststruct12(a: TestFp12) -> Fp12 {
+    (fromteststruct6(a.0), fromteststruct6(a.1))
+}
+
 
 #[test]
 fn test_add_neg() {
@@ -59,7 +77,7 @@ fn test_add_neg() {
 }
 
 #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
-fn test_prop_add_neg(a: (TestFp, TestFp)) -> bool {
+fn test_fp2_prop_add_neg(a: (TestFp, TestFp)) -> bool {
     let a = (a.0.0, a.1.0);
     let b = fp2neg(a);
     fp2fromfp(Fp::ZERO()) == fp2add(a, b)
@@ -89,10 +107,40 @@ fn test_mul_inv() {
 }
 //Generating random numbers, taking inverse and multiplying - checking that random element times inverse gives one
 #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
-fn test_prop_mul_inv(a: (TestFp, TestFp)) -> bool {
-    let a = (a.0.0, a.1.0);
+fn test_fp2_prop_mul_inv(a: TestFp2) -> bool {
+    let a = fromteststruct2(a);
     let b = fp2inv(a);
     fp2fromfp(Fp::ONE()) == fp2mul(a, b)
+}
+
+//Fp6 tests
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_fp6_prop_mul_inv(a: TestFp6) -> bool {
+    let a = fromteststruct6(a);
+    let b = fp6inv(a);
+    fp6fromfp2(fp2fromfp(Fp::ONE())) == fp6mul(a, b)
+}
+
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_fp6_prop_add_neg(a: TestFp6) -> bool {
+    let a = fromteststruct6(a);
+    let b = fp6neg(a);
+    fp6fromfp2(fp2fromfp(Fp::ZERO())) == fp6add(a, b)
+}
+
+//Fp12 tests
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_fp12_prop_add_neg(a: TestFp12) -> bool {
+    let a = fromteststruct12(a);
+    let b = fp12neg(a);
+    fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ZERO()))) == fp12add(a, b)
+}
+
+#[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+fn test_fp12_prop_mul_inv(a: TestFp12) -> bool {
+    let a = fromteststruct12(a);
+    let b = fp12inv(a);
+    fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE()))) == fp12mul(a, b)
 }
 
 //G1 tests
