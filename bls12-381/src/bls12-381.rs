@@ -21,7 +21,7 @@ public_nat_mod!( //Custom Macro - defining a new type with some functions - well
 );
 
 //Returns index of left-most bit, set to 1
-fn most_significant_bit(m: Scalar, n: usize) -> usize 
+pub fn most_significant_bit(m: Scalar, n: usize) -> usize 
 {
     /*
     if n > 0 && !m.bit(n) {
@@ -163,6 +163,7 @@ pub fn fp12fromfp6(n: Fp6) -> Fp12 {
     (n, fp6zero())
 }
 
+
 pub fn fp12neg(n: Fp12) -> Fp12 {
     let (n1, n2) = n;
     (fp6sub(fp6zero(), n1), fp6sub(fp6zero(), n2))
@@ -294,4 +295,55 @@ pub fn g2mult(m: Scalar, p: G2) -> G2
         }
     }
     t
+}
+
+fn twist(p: G1) -> (Fp12, Fp12) {
+    let (p0, p1) = p;
+    let x = ((fp2zero(), fp2fromfp(p0), fp2zero()) , fp6zero());
+    let y = (fp6zero(), (fp2zero(), fp2fromfp(p1), fp2zero()));
+    (x, y)
+}
+
+fn line_double_p(r: G2, p: G1) -> Fp12 {
+    let (r0, r1) = r;
+    let a = fp2mul(fp2fromfp(Fp::from_literal(3u128)), fp2mul(r0, r0));
+    let a = fp2mul(a, fp2inv(fp2mul(fp2fromfp(Fp::TWO()), r1)));
+    let b = fp2sub(r1, fp2mul(a, r0));
+    let a = fp12fromfp6(fp6fromfp2(a));
+    let b = fp12fromfp6(fp6fromfp2(b));
+    let (x, y) = twist(p);
+    fp12sub(fp12sub(y, fp12mul(a, x)), b) //y - ax - b
+}
+
+fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
+    let (r0, r1) = r;
+    let (q0, q1) = q;
+    let a = fp2mul(fp2sub(q1, r1), fp2inv(fp2sub(q0, r0)));
+    let b = fp2sub(r1, fp2mul(a, r0));
+    let a = fp12fromfp6(fp6fromfp2(a));
+    let b = fp12fromfp6(fp6fromfp2(b));
+    let (x, y) = twist(p);
+    fp12sub(fp12sub(y, fp12mul(a, x)), b) //y - ax - b
+}
+
+//TO DO: Implement this...
+fn final_exponentiation(f: Fp12) -> Fp12 {
+    f
+}
+
+pub fn pairing(p: G1, q: G2) -> Fp12 {
+    let t = Scalar::from_literal(0xd201000000010000u128);
+    let mut r = q;
+    let mut f = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
+    for i in 1..64 {
+        let lrr = line_double_p(r, p);
+        r = g2double(r);
+        f = fp12mul(fp12mul(f, f), lrr);
+        if t.bit(64 - i - 1) {
+            let lrq = line_add_p(r, q, p);
+            r = g2add(r, q);
+            f = fp12mul(f, lrq);
+        }
+    }
+    final_exponentiation(f)
 }
