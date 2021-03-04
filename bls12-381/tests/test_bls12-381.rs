@@ -542,16 +542,27 @@ fn test_test2() {
 }
 
 #[test]
+fn test_test3() {
+    let a = g1();
+    let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
+    //let b = g1mult(r, a);
+    let c = Fp::ZERO().inv();
+    assert_eq!(a, (c, Fp::ZERO()));
+}
+
+#[test]
 fn test_frob() {
     let a = gt();
     let b = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(a))))))))))));
-    assert_eq!(a, b)
+    let c = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(a))))));
+    assert_eq!(a, b);
+    assert_eq!(a, fp12conjugate(c));
 }
 
 #[test]
 fn test_pairing() {
     
 
-    //assert_eq!(pairing(g1(), g2()), gt())
-    assert_eq!(pairing(g1mult(Scalar::TWO(), g1()), g2()), fp12exp(pairing(g1(), g2()), Scalar::TWO()));
+    assert_eq!(pairing(g1(), g2()), gt())
+    //assert_eq!(pairing(g1mult(Scalar::TWO(), g1()), g2()), fp12exp(pairing(g1(), g2()), Scalar::TWO()));
 }

@@ -242,6 +242,11 @@ pub fn fp12exp(n: Fp12, k: Scalar) -> Fp12 {
     c
 }
 
+pub fn fp12conjugate(n: Fp12) -> Fp12 {
+    let (n1, n2) = n;
+    (n1, fp6neg(n2))
+}
+
 /* Arithmetic in G1 */
 
 pub fn g1add(p: G1, q: G1) -> G1
@@ -371,31 +376,7 @@ pub fn frobenius(f: Fp12) -> Fp12 {
     let t4 = fp2conjugate(h1);
     let t5 = fp2conjugate(g2);
     let t6 = fp2conjugate(h2); 
-/*
-    let c1 = c1
-            * Fp6::from(Fp2 {
-                c0: Fp::from_raw_unchecked([
-                    0x0708_9552_b319_d465,
-                    0xc669_5f92_b50a_8313,
-                    0x97e8_3ccc_d117_228f,
-                    0xa35b_aeca_b2dc_29ee,
-                    0x1ce3_93ea_5daa_ce4d,
-                    0x08f2_220f_b0fb_66eb,
-                ]),
-                c1: Fp::from_raw_unchecked([
-                    0xb2f6_6aad_4ce5_d646,
-                    0x5842_a06b_fc49_7cec,
-                    0xcf48_95d4_2599_d394,
-                    0xc11b_9cba_40a8_e8d0,
-                    0x2e38_13cb_e5a0_de89,
-                    0x110e_efda_8884_7faf,
-                ]),
-            });
-    
-            */
-    //gamma11 = (u+1)^((p-1)/6)
-    //let mut c1 = Seq::<U64>::new(6);
-    //let c1 = secret_array!(U64, [0x0708_9552_b319_d465, 0xc669_5f92_b50a_8313, 0x97e8_3ccc_d117_228f, 0xa35b_aeca_b2dc_29ee, 0x1ce3_93ea_5daa_ce4d, 0x08f2_220f_b0fb_66eb]);
+
 
     //Funky way of storing gamma11
             //1904D3BF02BB0667    C231BEB4202C0D1F  0FD603FD3CBD5F4F  7B2443D784BAB9C4    F67EA53D63E7813D   8D0775ED92235FB8
@@ -427,38 +408,7 @@ pub fn frobenius(f: Fp12) -> Fp12 {
     let c2 = ArrayFp::to_le_bytes(&c2);
     let c2 = Fp::from_byte_seq_le(c2);
     
-    /*
-    let c1 = ArrayFp(secret_array!(
-        U64,
-        [0x0708_9552_b319_d465u64,
-        0xc669_5f92_b50a_8313u64,
-        0x97e8_3ccc_d117_228fu64,
-        0xa35b_aeca_b2dc_29eeu64,
-        0x1ce3_93ea_5daa_ce4du64,
-        0x08f2_220f_b0fb_66ebu64]
-    ));
-
-    let c1 = ArrayFp::to_le_bytes(&c1);
-    let c1 = Fp::from_byte_seq_le(c1);
-
-            //00FC3E2B36C4E032 88E9E902231F9FB8 54A14787B6C7B36F EC0C8EC971F63C5F 282D5AC14D6C7EC2 2CF78A126DDC4AF3
-    let c2 = ArrayFp(secret_array!(
-        U64,
-        [0xb2f6_6aad_4ce5_d646u64,
-        0x5842_a06b_fc49_7cecu64,
-        0xcf48_95d4_2599_d394u64,
-        0xc11b_9cba_40a8_e8d0u64,
-        0x2e38_13cb_e5a0_de89u64,
-        0x110e_efda_8884_7fafu64]
-    ));
-
-    let c2 = ArrayFp::to_le_bytes(&c2);
-    let c2 = Fp::from_byte_seq_le(c2);
-    
-    */
-
-
-
+    // gamma11 = (1+u)^((p-1) / 6)
     let gamma11 = (c1, c2);
     let gamma12 = fp2exp(gamma11, Scalar::from_literal(2u128));
     let gamma13 = fp2exp(gamma11, Scalar::from_literal(3u128));
@@ -475,7 +425,7 @@ pub fn frobenius(f: Fp12) -> Fp12 {
 }
 
 fn final_exponentiation(f: Fp12) -> Fp12 {
-    let fp6 = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(f))))));
+    let fp6 = fp12conjugate(f);
     let finv = fp12inv(f);
     let fp6_1 = fp12mul(fp6, finv);
     let fp8 = frobenius(frobenius(fp6_1));
@@ -486,19 +436,19 @@ fn final_exponentiation(f: Fp12) -> Fp12 {
     let t0 = fp12mul(f, f);
     let t1 = fp12exp(t0, u);
     let t2 = fp12exp(t1, u / Scalar::TWO());
-    let t3 = fp12inv(f);
+    let t3 = fp12conjugate(f);
     let t1 = fp12mul(t3, t1);
 
-    let t1 = fp12inv(t1);
+    let t1 = fp12conjugate(t1);
     let t1 = fp12mul(t1, t2);
 
     let t2 = fp12exp(t1, u);
 
     let t3 = fp12exp(t2, u);
-    let t1 = fp12inv(t1);
+    let t1 = fp12conjugate(t1);
     let t3 = fp12mul(t1, t3);
 
-    let t1 = fp12inv(t1);
+    let t1 = fp12conjugate(t1);
     let t1 = frobenius(frobenius(frobenius(t1)));
     let t2 = frobenius(frobenius(t2));
     let t1 = fp12mul(t1, t2);
@@ -514,7 +464,7 @@ fn final_exponentiation(f: Fp12) -> Fp12 {
 }
 
 pub fn pairing(p: G1, q: G2) -> Fp12 {
-    let t = Scalar::from_literal(0xd201000000010000u128);
+    let t = Scalar::from_literal(0xd201000000010000u128); 
     let mut r = q;
     let mut f = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
     for i in 1..64 {
