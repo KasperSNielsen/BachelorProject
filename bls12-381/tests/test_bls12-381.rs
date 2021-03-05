@@ -180,7 +180,7 @@ fn test_g1_arithmetic()
         0x51ac_5829_5040_5194,
         0x0e1c_8c3f_ad00_59c0,
         0x0bbc_3efc_5008_a26a,
-    ]));
+    ]), false);
 
     let g2 = g1double(g);
     let g4a = g1double(g2);
@@ -207,7 +207,7 @@ fn test_g1_mul()
         0x51ac_5829_5040_5194,
         0x0e1c_8c3f_ad00_59c0,
         0x0bbc_3efc_5008_a26a,
-    ]));
+    ]), false);
 
     let s = Scalar::from_literal(11);
     let g11a = g1mult(s, g);
@@ -254,7 +254,7 @@ fn test_g2_arithmetic()
             0x7949_5c4e_c93d_a33a,
             0xe717_5850_a43c_caed,
             0x0b2b_c2a1_63de_1bf2,
-        ])));
+        ])), false);
 
     let g2 = g2double(g);
     let g4a = g2double(g2);
@@ -297,7 +297,7 @@ fn test_g2_mul()
         0x7949_5c4e_c93d_a33a,
         0xe717_5850_a43c_caed,
         0x0b2b_c2a1_63de_1bf2,
-    ])));
+    ])), false);
 
     let s = Scalar::from_literal(11);
     let g11a = g2mult(s, g);
@@ -324,59 +324,21 @@ fn test_helper() {
     assert_eq!(a, b);
 }
 
+//Generators taken from:
+//https://tools.ietf.org/id/draft-yonezawa-pairing-friendly-curves-02.html#rfc.section.4.2.2
+
+//THIS IS A CORRECT G1 GENERATOR :)
 fn g1() -> G1 {
-    (fpfromarray([
-    0x5cb3_8790_fd53_0c16,
-    0x7817_fc67_9976_fff5,
-    0x154f_95c7_143b_a1c1,
-    0xf0ae_6acd_f3d0_e747,
-    0xedce_6ecc_21db_f440,
-    0x1201_7741_9e0b_fb75,
-    ]),
-    fpfromarray([
-        0xbaac_93d5_0ce7_2271,
-        0x8c22_631a_7918_fd8e,
-        0xdd59_5f13_5707_25ce,
-        0x51ac_5829_5040_5194,
-        0x0e1c_8c3f_ad00_59c0,
-        0x0bbc_3efc_5008_a26a,
-    ]))
+    (Fp::from_hex("17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb"),
+    Fp::from_hex("08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1"), false)
 }
 
+//THIS IS A CORRECT G2 GENERATOR :)
 fn g2() -> G2 {
-    ((fpfromarray([
-        0xf5f2_8fa2_0294_0a10,
-        0xb3f5_fb26_87b4_961a,
-        0xa1a8_93b5_3e2a_e580,
-        0x9894_999d_1a3c_aee9,
-        0x6f67_b763_1863_366b,
-        0x0581_9192_4350_bcd7,
-    ]),
-    fpfromarray([
-        0xa5a9_c075_9e23_f606,
-        0xaaa0_c59d_bccd_60c3,
-        0x3bb1_7e18_e286_7806,
-        0x1b1a_b6cc_8541_b367,
-        0xc2b6_ed0e_f215_8547,
-        0x1192_2a09_7360_edf3,
-    ])),
-
-(fpfromarray([
-        0x4c73_0af8_6049_4c4a,
-        0x597c_fa1f_5e36_9c5a,
-        0xe7e6_856c_aa0a_635a,
-        0xbbef_b5e9_6e0d_495f,
-        0x07d3_a975_f0ef_25a2,
-        0x0083_fd8e_7e80_dae5,
-    ]),
-    fpfromarray([
-        0xadc0_fc92_df64_b05d,
-        0x18aa_270a_2b14_61dc,
-        0x86ad_ac6a_3be4_eba0,
-        0x7949_5c4e_c93d_a33a,
-        0xe717_5850_a43c_caed,
-        0x0b2b_c2a1_63de_1bf2,
-    ])))
+    ((Fp::from_hex("24aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8"),
+    Fp::from_hex("13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e")), 
+    (Fp::from_hex("0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801"), 
+    Fp::from_hex("0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be")), false)
 }
 
 fn gt() -> Fp12 {
@@ -502,7 +464,7 @@ fn test_test() {
         0x08f2_220f_b0fb_66eb]);
     assert_eq!(c1, c2);
 }
-
+/*
 #[test]
 fn test_test2() {
     let p = Scalar::from_hex("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab");
@@ -540,17 +502,29 @@ fn test_test2() {
 
     assert_eq!(s, gamma11);
 }
+*/
 
+//Testing the cofactor multiplication and integer times group element
 #[test]
-fn test_test3() {
-    let a = g1();
+fn test_g1_generator() {
     let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
-    //let b = g1mult(r, a);
-    let c = Fp::ZERO().inv();
-    assert_eq!(a, (c, Fp::ZERO()));
+
+    let aa = g1();
+    let dd = g1mult(r, aa);
+    assert!(dd.2);
 }
 
 #[test]
+fn test_g2_generator() {
+    let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
+
+    let a = g2();
+    let b = g2mult(r, a);
+    assert!(b.2);
+
+}
+
+#[test] //To Do: Property Quick-test
 fn test_frob() {
     let a = gt();
     let b = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(a))))))))))));
@@ -563,6 +537,26 @@ fn test_frob() {
 fn test_pairing() {
     
 
-    assert_eq!(pairing(g1(), g2()), gt())
-    //assert_eq!(pairing(g1mult(Scalar::TWO(), g1()), g2()), fp12exp(pairing(g1(), g2()), Scalar::TWO()));
+    //assert_eq!(pairing(g1(), g2()), gt());
+    assert_eq!(pairing(g1mult(Scalar::TWO(), g1()), g2()), pairing(g1(), g2mult(Scalar::TWO(), g2())));
+}
+
+#[test]
+fn test_test5() {
+    let g2 = g2();
+    let g1 = g1();
+    let h = line_double_p(g2, g1);
+    let b = fp2mul(fp2fromfp(Fp::from_literal(4u128)), (Fp::ONE(), Fp::ONE())); 
+    //let b = fp2fromfp(Fp::from_literal(4u128));
+    let two = fp2fromfp(Fp::TWO());
+    let three = fp2fromfp(Fp::from_literal(3u128));
+    let t1 = fp2mul(three, fp2mul(g2.0,g2.0));
+    let t2 = fp2mul(two, g2.1);
+    let t3 = fp2sub(fp2mul(three, b), fp2mul(g2.1, g2.1));
+    let t1 = fp12fromfp6(fp6fromfp2(t1));
+    let t2 = fp12fromfp6(fp6fromfp2(t2));
+    let t3 = fp12fromfp6(fp6fromfp2(t3));
+    let (xs, ys) = twist(g1);
+    let g = fp12add(fp12sub(fp12mul(t1, xs), fp12mul(t2, ys)), t3);
+    assert_eq!(h, g);
 }

@@ -44,10 +44,10 @@ pub fn most_significant_bit(m: Scalar, n: usize) -> usize
     result
     
 }
-
-pub type G1 = (Fp, Fp);
+//bool is "isPointAtInfinity"
+pub type G1 = (Fp, Fp, bool);
 pub type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u^2 = -1
-pub type G2 = (Fp2, Fp2);
+pub type G2 = (Fp2, Fp2, bool);
 pub type Fp6 = (Fp2, Fp2, Fp2);
 pub type Fp12 = (Fp6, Fp6);
 
@@ -249,31 +249,55 @@ pub fn fp12conjugate(n: Fp12) -> Fp12 {
 
 /* Arithmetic in G1 */
 
-pub fn g1add(p: G1, q: G1) -> G1
+fn g1add_a(p: G1, q: G1) -> G1
 {
-    let (x1, y1) = p;
-    let (x2, y2) = q;
+    let (x1, y1, _) = p;
+    let (x2, y2, _) = q;
 
     let x_diff = x2 - x1; 
     let y_diff = y2 - y1;
     let xovery = y_diff * x_diff.inv(); //  x / y = x * y^-1
     let x3 = xovery.exp(2u32) - x1 - x2;
     let y3 = xovery * (x1 - x3) - y1;
-    (x3, y3)
+    (x3, y3, false)
 }
 
-pub fn g1double(p: G1) -> G1
+fn g1double_a(p: G1) -> G1
 {
-    let (x1, y1) = p;
+    let (x1, y1, _) = p;
     
     let x12 = x1.exp(2u32);
     let xovery = (Fp::from_literal(3u128) * x12) * (Fp::TWO() * y1).inv();
     let x3 = xovery.exp(2u32) - Fp::TWO()*x1;
     let y3 = xovery * (x1 - x3) - y1;
-    (x3, y3)
+    (x3, y3, false)
+}
+//Wrapper with Point of Infinity
+pub fn g1add(p: G1, q: G1) -> G1 {
+    let (x1, y1, inf1) = p;
+    let (x2, y2, inf2) = q;
+
+    let mut result = (Fp::ZERO(), Fp::ZERO(), true);
+    if inf1 {
+        result = q;
+    } else { if inf2 {
+        result = p;
+    } else { if p == q {
+        result = g1double_a(p);
+    } else { if !(x1 == x2 && y1 == Fp::ZERO() - y2) {
+        result = g1add_a(p, q);
+    }}}}
+    result
 }
 
-
+pub fn g1double(p: G1) -> G1 {
+    let (_x1, y1, inf1) = p;
+    let mut result = (Fp::ZERO(), Fp::ZERO(), true);
+    if y1 != Fp::ZERO() && !inf1 {
+        result = g1double_a(p);
+    }
+    result
+}
 
 pub fn g1mult(m: Scalar, p: G1) -> G1
 {
@@ -291,10 +315,10 @@ pub fn g1mult(m: Scalar, p: G1) -> G1
 
 /* Arithmetic in G2 */
 
-pub fn g2add(p: G2, q: G2) -> G2
+fn g2add_a(p: G2, q: G2) -> G2
 {
-    let (x1, y1) = p;
-    let (x2, y2) = q;
+    let (x1, y1, _) = p;
+    let (x2, y2, _) = q;
 
     let x_diff = fp2sub(x2, x1); 
     let y_diff = fp2sub(y2, y1); 
@@ -305,12 +329,12 @@ pub fn g2add(p: G2, q: G2) -> G2
     let t1 = fp2sub(x1, x3); 
     let t2 = fp2mul(xovery, t1);
     let y3 = fp2sub(t2, y1); 
-    (x3, y3)
+    (x3, y3, false)
 }
 
-pub fn g2double(p: G2) -> G2
+fn g2double_a(p: G2) -> G2
 {
-    let (x1, y1) = p;
+    let (x1, y1, _) = p;
     
     let x12 = fp2mul(x1, x1);
     let t1 = fp2mul(fp2fromfp(Fp::from_literal(3u128)), x12);
@@ -322,7 +346,34 @@ pub fn g2double(p: G2) -> G2
     let t1 = fp2sub(x1, x3);
     let t2 = fp2mul(xovery, t1);
     let y3 = fp2sub(t2, y1);
-    (x3, y3)
+    (x3, y3, false)
+}
+
+//Wrapper with Point of Infinity
+pub fn g2add(p: G2, q: G2) -> G2 {
+    let (x1, y1, inf1) = p;
+    let (x2, y2, inf2) = q;
+
+    let mut result = (fp2zero(), fp2zero(), true);
+    if inf1 {
+        result = q;
+    } else { if inf2 {
+        result = p;
+    } else { if p == q {
+        result = g2double_a(p);
+    } else { if !(x1 == x2 && y1 == fp2neg(y2)) {
+        result = g2add_a(p, q);
+    }}}}
+    result
+}
+
+pub fn g2double(p: G2) -> G2 {
+    let (_x1, y1, inf1) = p;
+    let mut result = (fp2zero(), fp2zero(), true);
+    if y1 != fp2zero() && !inf1 {
+        result = g2double_a(p);
+    }
+    result
 }
 
 pub fn g2mult(m: Scalar, p: G2) -> G2
@@ -338,16 +389,16 @@ pub fn g2mult(m: Scalar, p: G2) -> G2
     }
     t
 }
-
-fn twist(p: G1) -> (Fp12, Fp12) {
-    let (p0, p1) = p;
+//To Do on the following couple of functions: Throw error if twisting point at infinity
+pub fn twist(p: G1) -> (Fp12, Fp12) {
+    let (p0, p1, _) = p;
     let x = ((fp2zero(), fp2fromfp(p0), fp2zero()) , fp6zero());
     let y = (fp6zero(), (fp2zero(), fp2fromfp(p1), fp2zero()));
     (x, y)
 }
 
-fn line_double_p(r: G2, p: G1) -> Fp12 {
-    let (r0, r1) = r;
+pub fn line_double_p(r: G2, p: G1) -> Fp12 {
+    let (r0, r1, _) = r;
     let a = fp2mul(fp2fromfp(Fp::from_literal(3u128)), fp2mul(r0, r0));
     let a = fp2mul(a, fp2inv(fp2mul(fp2fromfp(Fp::TWO()), r1)));
     let b = fp2sub(r1, fp2mul(a, r0));
@@ -358,8 +409,8 @@ fn line_double_p(r: G2, p: G1) -> Fp12 {
 }
 
 fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
-    let (r0, r1) = r;
-    let (q0, q1) = q;
+    let (r0, r1, _) = r;
+    let (q0, q1, _) = q;
     let a = fp2mul(fp2sub(q1, r1), fp2inv(fp2sub(q0, r0)));
     let b = fp2sub(r1, fp2mul(a, r0));
     let a = fp12fromfp6(fp6fromfp2(a));
