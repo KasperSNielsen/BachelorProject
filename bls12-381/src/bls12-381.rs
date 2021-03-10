@@ -46,10 +46,10 @@ pub fn most_significant_bit(m: Scalar, n: usize) -> usize
 }
 //bool is "isPointAtInfinity"
 pub type G1 = (Fp, Fp, bool);
-pub type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u^2 = -1
+pub type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u² = -1
 pub type G2 = (Fp2, Fp2, bool);
-pub type Fp6 = (Fp2, Fp2, Fp2);
-pub type Fp12 = (Fp6, Fp6);
+pub type Fp6 = (Fp2, Fp2, Fp2); //v³ = u + 1
+pub type Fp12 = (Fp6, Fp6); //w² = v
 
 
 
@@ -247,6 +247,10 @@ pub fn fp12conjugate(n: Fp12) -> Fp12 {
     (n1, fp6neg(n2))
 }
 
+pub fn fp12zero() -> Fp12 {
+    fp12fromfp6(fp6zero())
+}
+
 /* Arithmetic in G1 */
 
 fn g1add_a(p: G1, q: G1) -> G1
@@ -405,10 +409,10 @@ pub fn line_double_p(r: G2, p: G1) -> Fp12 {
     let a = fp12fromfp6(fp6fromfp2(a));
     let b = fp12fromfp6(fp6fromfp2(b));
     let (x, y) = twist(p);
-    fp12sub(fp12sub(y, fp12mul(a, x)), b) //y - ax - b
+    fp12neg(fp12sub(fp12sub(y, fp12mul(a, x)), b)) //y - ax - b
 }
 
-fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
+pub fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
     let (r0, r1, _) = r;
     let (q0, q1, _) = q;
     let a = fp2mul(fp2sub(q1, r1), fp2inv(fp2sub(q0, r0)));
@@ -416,7 +420,7 @@ fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
     let a = fp12fromfp6(fp6fromfp2(a));
     let b = fp12fromfp6(fp6fromfp2(b));
     let (x, y) = twist(p);
-    fp12sub(fp12sub(y, fp12mul(a, x)), b) //y - ax - b
+    fp12neg(fp12sub(fp12sub(y, fp12mul(a, x)), b)) //y - ax - b
 }
 
 pub fn frobenius(f: Fp12) -> Fp12 {
@@ -475,7 +479,7 @@ pub fn frobenius(f: Fp12) -> Fp12 {
     ((t1, t3, t5), (t2, t4, t6))
 }
 
-fn final_exponentiation(f: Fp12) -> Fp12 {
+pub fn final_exponentiation(f: Fp12) -> Fp12 {
     let fp6 = fp12conjugate(f);
     let finv = fp12inv(f);
     let fp6_1 = fp12mul(fp6, finv);
@@ -529,4 +533,21 @@ pub fn pairing(p: G1, q: G2) -> Fp12 {
         }
     }
     final_exponentiation(f)
+}
+
+pub fn pairing_test(p: G1, q: G2, n: usize) -> Fp12 {
+    let t = Scalar::from_literal(0xd201000000010000u128); 
+    let mut r = q;
+    let mut f = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
+    for i in 1..(n+1) {
+        let lrr = line_double_p(r, p);
+        r = g2double(r);
+        f = fp12mul(fp12mul(f, f), lrr);
+        if t.bit(64 - i - 1) {
+            let lrq = line_add_p(r, q, p);
+            r = g2add(r, q);
+            f = fp12mul(f, lrq);
+        }
+    }
+    f
 }

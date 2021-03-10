@@ -53,6 +53,26 @@ fn fromteststruct12(a: TestFp12) -> Fp12 {
     (fromteststruct6(a.0), fromteststruct6(a.1))
 }
 
+fn to_hex(f: Fp) -> String {
+    let s = Fp::to_byte_seq_be(f);
+    Seq::to_hex(&s)
+}
+
+fn printfp12hex(f: Fp12) {
+    println!("{}", to_hex(f.0.0.0));
+    println!("{}", to_hex(f.0.0.1));
+    println!("{}", to_hex(f.0.1.0));
+    println!("{}", to_hex(f.0.1.1));
+    println!("{}", to_hex(f.0.2.0));
+    println!("{}", to_hex(f.0.2.1));
+    println!("{}", to_hex(f.1.0.0));
+    println!("{}", to_hex(f.1.0.1));
+    println!("{}", to_hex(f.1.1.0));
+    println!("{}", to_hex(f.1.1.1));
+    println!("{}", to_hex(f.1.2.0));
+    println!("{}", to_hex(f.1.2.1));
+    
+}
 
 #[test]
 fn test_add_neg() {
@@ -524,13 +544,12 @@ fn test_g2_generator() {
 
 }
 
-#[test] //To Do: Property Quick-test
-fn test_frob() {
-    let a = gt();
+#[quickcheck] //To Do: Property Quick-test
+fn test_frob(a: TestFp12) -> bool {
+    let a = fromteststruct12(a);
     let b = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(a))))))))))));
     let c = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(a))))));
-    assert_eq!(a, b);
-    assert_eq!(a, fp12conjugate(c));
+    a == b && a == fp12conjugate(c)
 }
 
 #[test]
@@ -546,6 +565,7 @@ fn test_test5() {
     let g2 = g2();
     let g1 = g1();
     let h = line_double_p(g2, g1);
+    /*
     let b = fp2mul(fp2fromfp(Fp::from_literal(4u128)), (Fp::ONE(), Fp::ONE())); 
     //let b = fp2fromfp(Fp::from_literal(4u128));
     let two = fp2fromfp(Fp::TWO());
@@ -558,5 +578,107 @@ fn test_test5() {
     let t3 = fp12fromfp6(fp6fromfp2(t3));
     let (xs, ys) = twist(g1);
     let g = fp12add(fp12sub(fp12mul(t1, xs), fp12mul(t2, ys)), t3);
-    assert_eq!(h, g);
+    */
+    assert_eq!(h, fp12zero());
 }
+
+#[test]
+fn test_test6() {
+    let g2 = g2();
+    let g1 = g1();
+    let r = g2double(g2);
+    let h = line_add_p(r, g2, g1);
+    let k = line_double_p(g2, g1);
+    //assert_eq!(h, fp12zero());
+    assert_eq!(fp12mul(k, h), fp12zero());
+}
+
+#[test]
+fn test_pairing_test() {
+    let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
+    let one = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
+    let g1 = g1();
+    let g2 = g2();
+    //assert_eq!(pairing_test(g1, g2, 1), fp12zero());
+    let f = pairing(g1, g2);
+    let h = fp12exp(f, r);
+    assert_eq!(h, one)
+}
+
+
+
+#[test]
+fn test_test7() {
+    let f = pairing_test(g1(), g2(), 63);
+    printfp12hex(f);
+    assert_eq!(f, fp12zero());
+}
+
+fn fp12point() -> Fp12 {
+    (((Fp::from_hex("12afbc6d6c71900c6228f0ec4a5ae91aa7747a0ddf39cde0062f71e950e716a8ae27ad686e700608f35e3f6c0fe0cf11"),
+    Fp::from_hex("1660f8efaccc7a77268d7e17a31926b2d58879922f0d430c39c891867c64bc5baa8ed0f8350626ffb592eefa8248e536")), 
+    (Fp::from_hex("13792df9b2c7e814fc6308f1ae6d641d7ae658d99725318b86104868ea3cbf8b94b0c2d4393c86a9d36641d22d0464e8"),
+    Fp::from_hex("16544b2b2595abd69b014bb2974cbc110787f2c4752b82c5460aaf9030eea1bce7ca11ebea791ba3622feb024b198431")),
+    (Fp::from_hex("12236e4849c69ecded8037549af297183f7be830f54e417e7970dd014027bc7aafc6485397113e65cc3079d1cf6fb1ba"),
+    Fp::from_hex("0934eeb51f85c8f0f34cb411a049ed9fe6215f775bebea5d757fb589dbd1821b2eb7c026f779ea0705b984764bbc3e22"))),
+    ((Fp::from_hex("149f6bdeb04b4be589c319b54a03b43960dd59a9f1a27c575caa5bc95614db83fc2ac87b521c7a37573e85ae9cc11284"),
+    Fp::from_hex("10bea874008cbcdf99d6f7e3dd03ee47106f2cf83597795795a30c2cc5a818af7ae2e6d0b00f0a0cd563c3d592332a7a")),
+    (Fp::from_hex("0edda465a41e2be599242c5e78280ced388f4d7fb5d77c8b87bcc2665f024ede6c29cbaff8b710391d0fcde8d02618e1"),
+    Fp::from_hex("0e8edc9ff2b93b5af140ff42e1b2998fd15dcb07d1af0e3b6a844c8b521c7885886ede9bff112cb5a35b4d9898ef65f9")),
+    (Fp::from_hex("0b362f9cb09944d3f759991bfc72aafd9930f719cf5390164b32d859b4090cc251b8117255a8358ed19ba3026e45c5c0"),
+    Fp::from_hex("005ffbaef16f69b249e9f9c81a913a9f1cc1c96154cfb89d00f769efcad52ef81aba95e1e3de33912e7a0f97b83972e5"))))
+}
+
+#[test]
+fn test_test8() {
+    let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
+    let f = fp12point();
+    let fp12 = frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(frobenius(f))))))))))));
+    let finv = fp12inv(f);
+    let one = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
+    assert_eq!(fp12mul(fp12, finv), one);
+    let ffinal = final_exponentiation(f);
+    let fr = fp12exp(ffinal, r);
+    assert_eq!(fr, one);
+}
+
+
+
+/*
+12AFBC6D6C71900C 6228F0EC4A5AE91A A7747A0DDF39CDE0 062F71E950E716A8 AE27AD686E700608 F35E3F6C0FE0CF11
+
+1660F8EFACCC7A77 268D7E17A31926B2 D58879922F0D430C 39C891867C64BC5B AA8ED0F8350626FF B592EEFA8248E536
+
+13792DF9B2C7E814 FC6308F1AE6D641D 7AE658D99725318B 86104868EA3CBF8B 94B0C2D4393C86A9 D36641D22D0464E8
+
+16544B2B2595ABD6 9B014BB2974CBC11 0787F2C4752B82C5 460AAF9030EEA1BC E7CA11EBEA791BA3 622FEB024B198431
+
+12236E4849C69ECD ED8037549AF29718 3F7BE830F54E417E 7970DD014027BC7A AFC6485397113E65 CC3079D1CF6FB1BA
+
+0934EEB51F85C8F0 F34CB411A049ED9F E6215F775BEBEA5D 757FB589DBD1821B 2EB7C026F779EA07 05B984764BBC3E22
+
+149F6BDEB04B4BE5 89C319B54A03B439 60DD59A9F1A27C57 5CAA5BC95614DB83 FC2AC87B521C7A37 573E85AE9CC11284
+
+10BEA874008CBCDF 99D6F7E3DD03EE47 106F2CF835977957 95A30C2CC5A818AF 7AE2E6D0B00F0A0C D563C3D592332A7A
+
+0EDDA465A41E2BE5 99242C5E78280CED 388F4D7FB5D77C8B 87BCC2665F024EDE 6C29CBAFF8B71039 1D0FCDE8D02618E1
+
+0E8EDC9FF2B93B5A F140FF42E1B2998F D15DCB07D1AF0E3B 6A844C8B521C7885 886EDE9BFF112CB5 A35B4D9898EF65F9
+
+0B362F9CB09944D3 F759991BFC72AAFD 9930F719CF539016 4B32D859B4090CC2 51B8117255A8358E D19BA3026E45C5C0
+
+005FFBAEF16F69B2 49E9F9C81A913A9F 1CC1C96154CFB89D 00F769EFCAD52EF8 1ABA95E1E3DE3391 2E7A0F97B83972E5
+
+12afbc6d6c71900c6228f0ec4a5ae91aa7747a0ddf39cde0062f71e950e716a8ae27ad686e700608f35e3f6c0fe0cf11
+1660f8efaccc7a77268d7e17a31926b2d58879922f0d430c39c891867c64bc5baa8ed0f8350626ffb592eefa8248e536
+13792df9b2c7e814fc6308f1ae6d641d7ae658d99725318b86104868ea3cbf8b94b0c2d4393c86a9d36641d22d0464e8
+16544b2b2595abd69b014bb2974cbc110787f2c4752b82c5460aaf9030eea1bce7ca11ebea791ba3622feb024b198431
+12236e4849c69ecded8037549af297183f7be830f54e417e7970dd014027bc7aafc6485397113e65cc3079d1cf6fb1ba
+0934eeb51f85c8f0f34cb411a049ed9fe6215f775bebea5d757fb589dbd1821b2eb7c026f779ea0705b984764bbc3e22
+149f6bdeb04b4be589c319b54a03b43960dd59a9f1a27c575caa5bc95614db83fc2ac87b521c7a37573e85ae9cc11284
+10bea874008cbcdf99d6f7e3dd03ee47106f2cf83597795795a30c2cc5a818af7ae2e6d0b00f0a0cd563c3d592332a7a
+0edda465a41e2be599242c5e78280ced388f4d7fb5d77c8b87bcc2665f024ede6c29cbaff8b710391d0fcde8d02618e1
+0e8edc9ff2b93b5af140ff42e1b2998fd15dcb07d1af0e3b6a844c8b521c7885886ede9bff112cb5a35b4d9898ef65f9
+0b362f9cb09944d3f759991bfc72aafd9930f719cf5390164b32d859b4090cc251b8117255a8358ed19ba3026e45c5c0
+005ffbaef16f69b249e9f9c81a913a9f1cc1c96154cfb89d00f769efcad52ef81aba95e1e3de33912e7a0f97b83972e5
+*/
