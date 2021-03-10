@@ -480,41 +480,47 @@ pub fn frobenius(f: Fp12) -> Fp12 {
 }
 
 pub fn final_exponentiation(f: Fp12) -> Fp12 {
-    let fp6 = fp12conjugate(f);
-    let finv = fp12inv(f);
-    let fp6_1 = fp12mul(fp6, finv);
-    let fp8 = frobenius(frobenius(fp6_1));
-    let f = fp12mul(fp8, fp6_1); // f = f^((p^6-1)(p^2+1))
+    let fp6 = fp12conjugate(f); // f^p⁶ 
+    let finv = fp12inv(f); //f^-1
+    let fp6_1 = fp12mul(fp6, finv); //f^(p⁶-1)
+    let fp8 = frobenius(frobenius(fp6_1)); //f^((p⁶-1)p²)
+    let f = fp12mul(fp8, fp6_1); // f = f^((p⁶-1)(p²+1))
 
-    let u = Scalar::from_literal(0xd201000000010000u128);
+    let u = Scalar::from_literal(0xd201000000010000u128); //u
 
-    let t0 = fp12mul(f, f);
-    let t1 = fp12exp(t0, u);
-    let t2 = fp12exp(t1, u / Scalar::TWO());
-    let t3 = fp12conjugate(f);
-    let t1 = fp12mul(t3, t1);
-
+    //Algorithm 2 from https://eprint.iacr.org/2016/130.pdf
+    let t0 = fp12mul(f, f); //f²
+    let t1 = fp12exp(t0, u); //t0^u
     let t1 = fp12conjugate(t1);
-    let t1 = fp12mul(t1, t2);
+    let t2 = fp12exp(t1, u / Scalar::TWO()); //t1^(u/2)
+    let t2 = fp12conjugate(t2);
+    let t3 = fp12conjugate(f); //f^-1
+    let t1 = fp12mul(t3, t1); //t3t1
 
-    let t2 = fp12exp(t1, u);
+    let t1 = fp12conjugate(t1); //t1^-1
+    let t1 = fp12mul(t1, t2); //t1t2
 
-    let t3 = fp12exp(t2, u);
-    let t1 = fp12conjugate(t1);
-    let t3 = fp12mul(t1, t3);
+    let t2 = fp12exp(t1, u); //t1^u
+    let t2 = fp12conjugate(t2);
 
-    let t1 = fp12conjugate(t1);
-    let t1 = frobenius(frobenius(frobenius(t1)));
-    let t2 = frobenius(frobenius(t2));
-    let t1 = fp12mul(t1, t2);
+    let t3 = fp12exp(t2, u);  //t2^u
+    let t3 = fp12conjugate(t3);
+    let t1 = fp12conjugate(t1); //t1^-1
+    let t3 = fp12mul(t1, t3); //t1t3
+
+    let t1 = fp12conjugate(t1); //t1^-1
+    let t1 = frobenius(frobenius(frobenius(t1))); //t1^p³
+    let t2 = frobenius(frobenius(t2)); //t2^p²
+    let t1 = fp12mul(t1, t2); //t1t2
     
-    let t2 = fp12exp(t3, u);
-    let t2 = fp12mul(t2, t0);
-    let t2 = fp12mul(t2, f);
+    let t2 = fp12exp(t3, u); //t3^u
+    let t2 = fp12conjugate(t2);
+    let t2 = fp12mul(t2, t0); //t2t0
+    let t2 = fp12mul(t2, f); //t2f
 
-    let t1 = fp12mul(t1, t2);
-    let t2 = frobenius(t3);
-    let t1 = fp12mul(t1, t2);
+    let t1 = fp12mul(t1, t2); //t1t2
+    let t2 = frobenius(t3); //t3^p
+    let t1 = fp12mul(t1, t2); //t1t2
     t1
 }
 
@@ -532,7 +538,7 @@ pub fn pairing(p: G1, q: G2) -> Fp12 {
             f = fp12mul(f, lrq);
         }
     }
-    final_exponentiation(f)
+    final_exponentiation(fp12conjugate(f))
 }
 
 pub fn pairing_test(p: G1, q: G2, n: usize) -> Fp12 {
@@ -549,5 +555,5 @@ pub fn pairing_test(p: G1, q: G2, n: usize) -> Fp12 {
             f = fp12mul(f, lrq);
         }
     }
-    f
+    fp12conjugate(f)
 }

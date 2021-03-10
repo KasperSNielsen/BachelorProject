@@ -594,7 +594,7 @@ fn test_test6() {
 }
 
 #[test]
-fn test_pairing_test() {
+fn test_2_pairing() {
     let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
     let one = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
     let g1 = g1();
@@ -637,7 +637,8 @@ fn test_test8() {
     let finv = fp12inv(f);
     let one = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
     assert_eq!(fp12mul(fp12, finv), one);
-    let ffinal = final_exponentiation(f);
+    let fc = fp12conjugate(f);
+    let ffinal = final_exponentiation(fc);
     let fr = fp12exp(ffinal, r);
     assert_eq!(fr, one);
 }
