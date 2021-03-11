@@ -13,36 +13,31 @@ public_nat_mod!( //Custom Macro - defining a newtype with some functions - well 
 
 bytes!(SerializedFp, 48); //Represent points as arrays for easier testing
 array!(ArrayFp, 6, U64);
-/*
+
 public_nat_mod!( //Custom Macro - defining a new type with some functions - well defined macro's have library functions built in
     type_name: Scalar,
     type_of_canvas: ScalarCanvas,
     bit_size_of_field: 256,
     modulo_value: "8000000000000000000000000000000000000000000000000000000000000000" //0x8000000000000000000000000000000000000000000000000000000000000000
 );
-*/
-public_nat_mod!( //Custom Macro - defining a new type with some functions - well defined macro's have library functions built in
-    type_name: Scalar,
-    type_of_canvas: ScalarCanvas,
-    bit_size_of_field: 384,
-    modulo_value: "800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" //0x8000000000000000000000000000000000000000000000000000000000000000
-);
+
+
 
 //Returns index of left-most bit, set to 1
 pub fn most_significant_bit(m: Scalar, n: usize) -> usize 
 {
-    /*
+    
     if n > 0 && !m.bit(n) {
         most_significant_bit(m, n-1)
     } else { n }    
-    */
     
+    /*
     let mut result = n;
     if n > 0 && !m.bit(n) {
         result = most_significant_bit(m, n-1);
     }
     result
-    
+    */
 }
 //bool is "isPointAtInfinity"
 pub type G1 = (Fp, Fp, bool);
@@ -102,11 +97,11 @@ pub fn fp2conjugate(n: Fp2) -> Fp2 {
 }
 
 pub fn fp2exp(n: Fp2, k: Scalar) -> Fp2 {
-    let l = 383 - most_significant_bit(k, 383);
+    let l = 255 - most_significant_bit(k, 255);
     let mut c = n;
-    for i in l..383 { //starting from second most significant bit
+    for i in l..255 { //starting from second most significant bit
         c = fp2mul(c, c);
-        if k.bit(383-i-1) {
+        if k.bit(255-i-1) {
             c = fp2mul(c, n);
         }
     }
@@ -317,6 +312,13 @@ pub fn g1mult(m: Scalar, p: G1) -> G1
     t
 }
 
+pub fn g1neg(p: G1) -> G1
+{
+    let (x, y, inf) = p;
+    (x, Fp::ZERO() - y, inf)
+}
+
+
 /* Arithmetic in G2 */
 
 fn g2add_a(p: G2, q: G2) -> G2
@@ -393,6 +395,13 @@ pub fn g2mult(m: Scalar, p: G2) -> G2
     }
     t
 }
+
+pub fn g2neg(p: G2) -> G2
+{
+    let (x, y, inf) = p;
+    (x, fp2neg(y), inf)
+}
+
 //To Do on the following couple of functions: Throw error if twisting point at infinity
 pub fn twist(p: G1) -> (Fp12, Fp12) {
     let (p0, p1, _) = p;
@@ -486,25 +495,25 @@ pub fn final_exponentiation(f: Fp12) -> Fp12 {
     let fp8 = frobenius(frobenius(fp6_1)); //f^((p⁶-1)p²)
     let f = fp12mul(fp8, fp6_1); // f = f^((p⁶-1)(p²+1))
 
-    let u = Scalar::from_literal(0xd201000000010000u128); //u
+    let u = Scalar::from_literal(0xd201000000010000u128); //-u
 
     //Algorithm 2 from https://eprint.iacr.org/2016/130.pdf
     let t0 = fp12mul(f, f); //f²
-    let t1 = fp12exp(t0, u); //t0^u
-    let t1 = fp12conjugate(t1);
-    let t2 = fp12exp(t1, u / Scalar::TWO()); //t1^(u/2)
-    let t2 = fp12conjugate(t2);
+    let t1 = fp12exp(t0, u); 
+    let t1 = fp12conjugate(t1); //t0^u
+    let t2 = fp12exp(t1, u / Scalar::TWO()); 
+    let t2 = fp12conjugate(t2); //t1^(u/2)
     let t3 = fp12conjugate(f); //f^-1
     let t1 = fp12mul(t3, t1); //t3t1
 
     let t1 = fp12conjugate(t1); //t1^-1
     let t1 = fp12mul(t1, t2); //t1t2
 
-    let t2 = fp12exp(t1, u); //t1^u
-    let t2 = fp12conjugate(t2);
+    let t2 = fp12exp(t1, u); 
+    let t2 = fp12conjugate(t2); //t1^u 
 
-    let t3 = fp12exp(t2, u);  //t2^u
-    let t3 = fp12conjugate(t3);
+    let t3 = fp12exp(t2, u);  
+    let t3 = fp12conjugate(t3); //t2^u
     let t1 = fp12conjugate(t1); //t1^-1
     let t3 = fp12mul(t1, t3); //t1t3
 
@@ -512,9 +521,9 @@ pub fn final_exponentiation(f: Fp12) -> Fp12 {
     let t1 = frobenius(frobenius(frobenius(t1))); //t1^p³
     let t2 = frobenius(frobenius(t2)); //t2^p²
     let t1 = fp12mul(t1, t2); //t1t2
-    
-    let t2 = fp12exp(t3, u); //t3^u
-    let t2 = fp12conjugate(t2);
+
+    let t2 = fp12exp(t3, u); 
+    let t2 = fp12conjugate(t2); //t3^u
     let t2 = fp12mul(t2, t0); //t2t0
     let t2 = fp12mul(t2, f); //t2f
 
@@ -541,19 +550,3 @@ pub fn pairing(p: G1, q: G2) -> Fp12 {
     final_exponentiation(fp12conjugate(f))
 }
 
-pub fn pairing_test(p: G1, q: G2, n: usize) -> Fp12 {
-    let t = Scalar::from_literal(0xd201000000010000u128); 
-    let mut r = q;
-    let mut f = fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE())));
-    for i in 1..(n+1) {
-        let lrr = line_double_p(r, p);
-        r = g2double(r);
-        f = fp12mul(fp12mul(f, f), lrr);
-        if t.bit(64 - i - 1) {
-            let lrq = line_add_p(r, q, p);
-            r = g2add(r, q);
-            f = fp12mul(f, lrq);
-        }
-    }
-    fp12conjugate(f)
-}
