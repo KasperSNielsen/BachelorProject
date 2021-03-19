@@ -30,7 +30,7 @@ pub fn most_significant_bit(m: Scalar, n: usize) -> usize
     if n > 0 && !m.bit(n) {
         most_significant_bit(m, n-1)
     } else { n }    
-    
+     
     /*
     let mut result = n;
     if n > 0 && !m.bit(n) {
@@ -276,26 +276,26 @@ pub fn g1add(p: G1, q: G1) -> G1 {
     let (x1, y1, inf1) = p;
     let (x2, y2, inf2) = q;
 
-    let mut result = (Fp::ZERO(), Fp::ZERO(), true);
     if inf1 {
-        result = q;
+        q
     } else { if inf2 {
-        result = p;
+        p
     } else { if p == q {
-        result = g1double_a(p);
+        g1double_a(p)
     } else { if !(x1 == x2 && y1 == Fp::ZERO() - y2) {
-        result = g1add_a(p, q);
+        g1add_a(p, q)
+    } else {
+        (Fp::ZERO(), Fp::ZERO(), true)
     }}}}
-    result
 }
 
 pub fn g1double(p: G1) -> G1 {
     let (_x1, y1, inf1) = p;
-    let mut result = (Fp::ZERO(), Fp::ZERO(), true);
     if y1 != Fp::ZERO() && !inf1 {
-        result = g1double_a(p);
+        g1double_a(p)
+    } else {
+        (Fp::ZERO(), Fp::ZERO(), true)
     }
-    result
 }
 
 pub fn g1mult(m: Scalar, p: G1) -> G1
@@ -360,26 +360,26 @@ pub fn g2add(p: G2, q: G2) -> G2 {
     let (x1, y1, inf1) = p;
     let (x2, y2, inf2) = q;
 
-    let mut result = (fp2zero(), fp2zero(), true);
     if inf1 {
-        result = q;
+        q
     } else { if inf2 {
-        result = p;
+        p
     } else { if p == q {
-        result = g2double_a(p);
+        g2double_a(p)
     } else { if !(x1 == x2 && y1 == fp2neg(y2)) {
-        result = g2add_a(p, q);
+        g2add_a(p, q)
+    } else {
+        (fp2zero(), fp2zero(), true)
     }}}}
-    result
 }
 
 pub fn g2double(p: G2) -> G2 {
     let (_x1, y1, inf1) = p;
-    let mut result = (fp2zero(), fp2zero(), true);
     if y1 != fp2zero() && !inf1 {
-        result = g2double_a(p);
+        g2double_a(p)
+    } else {
+        (fp2zero(), fp2zero(), true)
     }
-    result
 }
 
 pub fn g2mult(m: Scalar, p: G2) -> G2
@@ -550,3 +550,7 @@ pub fn pairing(p: G1, q: G2) -> Fp12 {
     final_exponentiation(fp12conjugate(f))
 }
 
+#[test]
+fn trivial() {
+    assert!(true);
+}
