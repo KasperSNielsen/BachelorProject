@@ -1,6 +1,6 @@
 [package]
 name = "bls12-381"
-version = "0.1.2"
+version = "1.0.0"
 authors = ["Kasper S. Nielsen <Kasper@s-nielsen.dk>", "Mathias Rud Laursen <mathias_rud@hotmail.com>"]
 edition = "2018"
 
@@ -11,7 +11,6 @@ path = "src/bls12-381.rs"
 
 [dependencies]
 hacspec-lib = { git = "https://github.com/hacspec/hacspec/" }
-quickcheck = "1"
 
 [dev-dependencies]
 quickcheck = "1"
