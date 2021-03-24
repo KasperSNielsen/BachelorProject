@@ -1,9 +1,5 @@
 // BLS: y^2 = x^3 + 4
-#[cfg(test)]
-extern crate quickcheck;
-#[cfg(test)]
-#[macro_use(quickcheck)]
-extern crate quickcheck_macros;
+
 
 use hacspec_lib::*;
 
@@ -107,6 +103,7 @@ fn fp2exp(n: Fp2, k: Scalar) -> Fp2 {
 }
 
 /* Arithmetic for Fp6 elements */
+//Algorithms from: https://eprint.iacr.org/2010/354.pdf
 fn fp6fromfp2(n: Fp2) -> Fp6 {
     (n, fp2zero(), fp2zero())
 }
@@ -176,7 +173,7 @@ fn fp6inv(n: Fp6) -> Fp6 {
 }
 
 /* Arithmetic for Fp12 elements */
-
+// Algorithms from: https://eprint.iacr.org/2010/354.pdf
 pub fn fp12fromfp6(n: Fp6) -> Fp12 {
     (n, fp6zero())
 }
@@ -246,6 +243,7 @@ pub fn fp12zero() -> Fp12 {
 
 /* Arithmetic in G1 */
 
+//g1 add with no Point at Infinity
 fn g1add_a(p: G1, q: G1) -> G1
 {
     let (x1, y1, _) = p;
@@ -259,6 +257,7 @@ fn g1add_a(p: G1, q: G1) -> G1
     (x3, y3, false)
 }
 
+//g1 double with no Point at Infinity
 fn g1double_a(p: G1) -> G1
 {
     let (x1, y1, _) = p;
@@ -269,7 +268,7 @@ fn g1double_a(p: G1) -> G1
     let y3 = xovery * (x1 - x3) - y1;
     (x3, y3, false)
 }
-//Wrapper with Point of Infinity
+/* Wrapper functions with Point of Infinity */
 pub fn g1add(p: G1, q: G1) -> G1 {
     let (x1, y1, inf1) = p;
     let (x2, y2, inf2) = q;
@@ -296,7 +295,7 @@ pub fn g1double(p: G1) -> G1 {
     }
 }
 
-pub fn g1mult(m: Scalar, p: G1) -> G1
+pub fn g1mul(m: Scalar, p: G1) -> G1
 {
     let n = 255;
     let k = n - most_significant_bit(m, n);
@@ -318,7 +317,7 @@ pub fn g1neg(p: G1) -> G1
 
 
 /* Arithmetic in G2 */
-
+//g2 add without dealing with Point at Infinity
 fn g2add_a(p: G2, q: G2) -> G2
 {
     let (x1, y1, _) = p;
@@ -335,7 +334,7 @@ fn g2add_a(p: G2, q: G2) -> G2
     let y3 = fp2sub(t2, y1); 
     (x3, y3, false)
 }
-
+//g2 double without dealing with Point at Infinity
 fn g2double_a(p: G2) -> G2
 {
     let (x1, y1, _) = p;
@@ -353,7 +352,7 @@ fn g2double_a(p: G2) -> G2
     (x3, y3, false)
 }
 
-//Wrapper with Point of Infinity
+/* Wrapper functions with Point at Infinity */
 pub fn g2add(p: G2, q: G2) -> G2 {
     let (x1, y1, inf1) = p;
     let (x2, y2, inf2) = q;
@@ -380,7 +379,7 @@ pub fn g2double(p: G2) -> G2 {
     }
 }
 
-pub fn g2mult(m: Scalar, p: G2) -> G2
+pub fn g2mul(m: Scalar, p: G2) -> G2
 {
     let n = 255;
     let k = n - most_significant_bit(m, n);
@@ -400,7 +399,7 @@ pub fn g2neg(p: G2) -> G2
     (x, fp2neg(y), inf)
 }
 
-//To Do on the following couple of functions: Throw error if twisting point at infinity
+//Curve twist, allowing us to work over Fp and Fp2, instead of Fp12
 fn twist(p: G1) -> (Fp12, Fp12) {
     let (p0, p1, _) = p;
     let x = ((fp2zero(), fp2fromfp(p0), fp2zero()) , fp6zero());
@@ -408,6 +407,7 @@ fn twist(p: G1) -> (Fp12, Fp12) {
     (x, y)
 }
 
+//Line double used in ate-pairing
 fn line_double_p(r: G2, p: G1) -> Fp12 {
     let (r0, r1, _) = r;
     let a = fp2mul(fp2fromfp(Fp::from_literal(3u128)), fp2mul(r0, r0));
@@ -419,6 +419,7 @@ fn line_double_p(r: G2, p: G1) -> Fp12 {
     fp12neg(fp12sub(fp12sub(y, fp12mul(a, x)), b)) //y - ax - b
 }
 
+//Line addition, used in ate-pairing
 fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
     let (r0, r1, _) = r;
     let (q0, q1, _) = q;
@@ -430,6 +431,7 @@ fn line_add_p(r: G2, q: G2, p: G1) -> Fp12 {
     fp12neg(fp12sub(fp12sub(y, fp12mul(a, x)), b)) //y - ax - b
 }
 
+//From https://eprint.iacr.org/2010/354.pdf
 fn frobenius(f: Fp12) -> Fp12 {
     let ((g0, g1, g2), (h0, h1, h2)) = f;
     let t1 = fp2conjugate(g0);
@@ -440,8 +442,9 @@ fn frobenius(f: Fp12) -> Fp12 {
     let t6 = fp2conjugate(h2); 
 
 
-    //Funky way of storing gamma11
-            //1904D3BF02BB0667    C231BEB4202C0D1F  0FD603FD3CBD5F4F  7B2443D784BAB9C4    F67EA53D63E7813D   8D0775ED92235FB8
+    /* Funky way of storing gamma11 */
+    
+    //1904D3BF02BB0667 C231BEB4202C0D1F 0FD603FD3CBD5F4F 7B2443D784BAB9C4 F67EA53D63E7813D 8D0775ED92235FB8
     let c1 = ArrayFp(secret_array!(
         U64,
         [0x8D0775ED92235FB8u64,
@@ -451,11 +454,10 @@ fn frobenius(f: Fp12) -> Fp12 {
         0xC231BEB4202C0D1Fu64,
         0x1904D3BF02BB0667u64]
     ));
-
     let c1 = ArrayFp::to_le_bytes(&c1);
     let c1 = Fp::from_byte_seq_le(c1);
 
-            //00FC3E2B36C4E032 88E9E902231F9FB8 54A14787B6C7B36F EC0C8EC971F63C5F 282D5AC14D6C7EC2 2CF78A126DDC4AF3
+    //00FC3E2B36C4E032 88E9E902231F9FB8 54A14787B6C7B36F EC0C8EC971F63C5F 282D5AC14D6C7EC2 2CF78A126DDC4AF3
     let c2 = ArrayFp(secret_array!(
         U64,
         [0x2CF78A126DDC4AF3u64,
@@ -465,17 +467,15 @@ fn frobenius(f: Fp12) -> Fp12 {
         0x88E9E902231F9FB8u64,
         0x00FC3E2B36C4E032u64]
     ));
-    
-
     let c2 = ArrayFp::to_le_bytes(&c2);
     let c2 = Fp::from_byte_seq_le(c2);
     
     // gamma11 = (1+u)^((p-1) / 6)
     let gamma11 = (c1, c2);
-    let gamma12 = fp2exp(gamma11, Scalar::from_literal(2u128));
-    let gamma13 = fp2exp(gamma11, Scalar::from_literal(3u128));
-    let gamma14 = fp2exp(gamma11, Scalar::from_literal(4u128));
-    let gamma15 = fp2exp(gamma11, Scalar::from_literal(5u128));
+    let gamma12 = fp2mul(gamma11, gamma11);
+    let gamma13 = fp2mul(gamma12, gamma11);
+    let gamma14 = fp2mul(gamma13, gamma11);
+    let gamma15 = fp2mul(gamma14, gamma11);
 
     let t2 = fp2mul(t2, gamma11);
     let t3 = fp2mul(t3, gamma12);
@@ -485,6 +485,7 @@ fn frobenius(f: Fp12) -> Fp12 {
 
     ((t1, t3, t5), (t2, t4, t6))
 }
+
 
 fn final_exponentiation(f: Fp12) -> Fp12 {
     let fp6 = fp12conjugate(f); // f^p⁶ 
@@ -496,6 +497,7 @@ fn final_exponentiation(f: Fp12) -> Fp12 {
     let u = Scalar::from_literal(0xd201000000010000u128); //-u
 
     //Algorithm 2 from https://eprint.iacr.org/2016/130.pdf
+    //Conjugations whenever u is used, since u is actually negative - and conjugation is enough (no inversion needed)
     let t0 = fp12mul(f, f); //f²
     let t1 = fp12exp(t0, u); 
     let t1 = fp12conjugate(t1); //t0^u
@@ -530,7 +532,7 @@ fn final_exponentiation(f: Fp12) -> Fp12 {
     let t1 = fp12mul(t1, t2); //t1t2
     t1
 }
-
+//ate-pairing used for BLS
 pub fn pairing(p: G1, q: G2) -> Fp12 {
     let t = Scalar::from_literal(0xd201000000010000u128); 
     let mut r = q;
@@ -545,26 +547,27 @@ pub fn pairing(p: G1, q: G2) -> Fp12 {
             f = fp12mul(f, lrq);
         }
     }
-    final_exponentiation(fp12conjugate(f))
+    final_exponentiation(fp12conjugate(f)) //conjugation since t is actually negative
 }
 
 //###########################################################################
-//tests
+//Tests - type checker ignores #[cfg(test)] parts
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 #[cfg(test)]
 mod test {
-    /* TO DO: Property Tests with associativity and distributive law */
 
     use super::*;
 
-    #[cfg(test)]
     use quickcheck::*;
 
-
-    /* Property Based Testing features, needed to perform testing */
-
+    //Arbitrary implementation is needed to randomly generate arbitrary elements of the specified type. Used in Property based testing to generate random tests
 
     /* Arbitrary Implementation used for Property Based Tests */
-    #[cfg(test)]
     impl Arbitrary for Fp {
         fn arbitrary(g: &mut Gen) -> Fp {
             let mut a: [u64; 6] = [0; 6];
@@ -581,7 +584,6 @@ mod test {
     }
     
     /* Arbitrary Implementation used for Property Based Tests */
-    #[cfg(test)]
     impl Arbitrary for Scalar {
         fn arbitrary(g: &mut Gen) -> Scalar {
             let mut a: [u64; 4] = [0; 4];
@@ -597,32 +599,8 @@ mod test {
         }
     }
 
-
-    //Sanity check helper functions
-    /*
-    fn to_hex(f: Fp) -> String {
-        let s = Fp::to_byte_seq_be(f);
-        Seq::to_hex(&s)
-    }
-
-    fn printfp12hex(f: Fp12) {
-        println!("{}", to_hex(f.0.0.0));
-        println!("{}", to_hex(f.0.0.1));
-        println!("{}", to_hex(f.0.1.0));
-        println!("{}", to_hex(f.0.1.1));
-        println!("{}", to_hex(f.0.2.0));
-        println!("{}", to_hex(f.0.2.1));
-        println!("{}", to_hex(f.1.0.0));
-        println!("{}", to_hex(f.1.0.1));
-        println!("{}", to_hex(f.1.1.0));
-        println!("{}", to_hex(f.1.1.1));
-        println!("{}", to_hex(f.1.2.0));
-        println!("{}", to_hex(f.1.2.1));
-        
-    }
-    */
     
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp2_prop_add_neg(a: Fp2) -> bool {
         let b = fp2neg(a);
         fp2fromfp(Fp::ZERO()) == fp2add(a, b)
@@ -630,7 +608,7 @@ mod test {
     
 
     //Generating random numbers, taking inverse and multiplying - checking that random element times inverse gives one
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp2_prop_mul_inv(a: Fp2) -> bool {
         let b = fp2inv(a);
         fp2fromfp(Fp::ONE()) == fp2mul(a, b)
@@ -645,26 +623,26 @@ mod test {
     }
 
     //Fp6 tests
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp6_prop_mul_inv(a: Fp6) -> bool {
         let b = fp6inv(a);
         fp6fromfp2(fp2fromfp(Fp::ONE())) == fp6mul(a, b)
     }
 
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp6_prop_add_neg(a: Fp6) -> bool {
         let b = fp6neg(a);
         fp6fromfp2(fp2fromfp(Fp::ZERO())) == fp6add(a, b)
     }
 
     //Fp12 tests
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp12_prop_add_neg(a: Fp12) -> bool {
         let b = fp12neg(a);
         fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ZERO()))) == fp12add(a, b)
     }
 
-    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements. Done via struct wrapper
+    #[quickcheck] //Using the fp arbitraty implementation from above to generate fp2 elements.
     fn test_fp12_prop_mul_inv(a: Fp12) -> bool {
         let b = fp12inv(a);
         fp12fromfp6(fp6fromfp2(fp2fromfp(Fp::ONE()))) == fp12mul(a, b)
@@ -678,7 +656,7 @@ mod test {
         fp12exp(fp12exp(a, m), n) == fp12exp(a, k)
     }
 
-    //G1 tests
+    /* G1 tests */
     #[test]
     fn test_g1_arithmetic()
     {
@@ -696,9 +674,9 @@ mod test {
     fn test_g1_mul_prop() {
         fn test_g1_mul(a: Scalar) -> bool
         {
-            let g = g1mult(a, g1());
+            let g = g1mul(a, g1());
             let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
-            let h = g1mult(r, g);
+            let h = g1mul(r, g);
             h.2
         }
         //Only needing 5 successes, slow because affine
@@ -722,9 +700,9 @@ mod test {
     fn test_g2_mul_prop() {
         fn test_g2_mul(a: Scalar) -> bool
         {
-            let g = g2mult(a, g2());
+            let g = g2mul(a, g2());
             let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
-            let h = g2mult(r, g);
+            let h = g2mul(r, g);
             h.2
         }
         //Only needing 5 successes, slow because affine
@@ -757,7 +735,7 @@ mod test {
         let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
 
         let aa = g1();
-        let dd = g1mult(r, aa);
+        let dd = g1mul(r, aa);
         assert!(dd.2);
     }
 
@@ -766,7 +744,7 @@ mod test {
         let r = Scalar::from_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"); //r
 
         let a = g2();
-        let b = g2mult(r, a);
+        let b = g2mul(r, a);
         assert!(b.2);
 
     }
@@ -784,9 +762,9 @@ mod test {
         let b = Scalar::from_literal(124959043234u128);
         let c = a * b;
         
-        let p = pairing(g1mult(a, g1()), g2mult(b, g2()));
+        let p = pairing(g1mul(a, g1()), g2mul(b, g2()));
         //e(a*g1, b*g2) = e(c*g1, g2) = e(g1, g1)*c with c = a * b
-        assert_eq!(p, pairing(g1mult(c, g1()), g2()));
+        assert_eq!(p, pairing(g1mul(c, g1()), g2()));
         //e(a*g1, b*g2) = e(g1, g2)^(a*b)
         assert_eq!(p, fp12exp(pairing(g1(), g2()), c)); 
     }   

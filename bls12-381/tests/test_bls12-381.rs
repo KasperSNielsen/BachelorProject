@@ -41,6 +41,6 @@ fn test_pairing_unitary() {
     assert_eq!(q, r);
 }
 
-// x*g1, x*g2, e(g1, x*g2) = e(x*g1, g2) 
+
 
 
