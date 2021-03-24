@@ -90,17 +90,6 @@ fn fp2conjugate(n: Fp2) -> Fp2 {
     (n1, Fp::ZERO()-n2)
 }
 
-fn fp2exp(n: Fp2, k: Scalar) -> Fp2 {
-    let l = 255 - most_significant_bit(k, 255);
-    let mut c = n;
-    for i in l..255 { //starting from second most significant bit
-        c = fp2mul(c, c);
-        if k.bit(255-i-1) {
-            c = fp2mul(c, n);
-        }
-    }
-    c
-}
 
 /* Arithmetic for Fp6 elements */
 //Algorithms from: https://eprint.iacr.org/2010/354.pdf
@@ -612,14 +601,6 @@ mod test {
     fn test_fp2_prop_mul_inv(a: Fp2) -> bool {
         let b = fp2inv(a);
         fp2fromfp(Fp::ONE()) == fp2mul(a, b)
-    }
-
-    #[quickcheck]
-    fn test_fp2_prop_exp(a: Fp2) -> bool {
-        let m = Scalar::from_literal(3u128);
-        let n = Scalar::from_literal(4u128);
-        let k = Scalar::from_literal(12u128);
-        fp2exp(fp2exp(a, m), n) == fp2exp(a, k)
     }
 
     //Fp6 tests

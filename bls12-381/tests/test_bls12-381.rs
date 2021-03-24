@@ -25,9 +25,9 @@ fn test_pairing_bilinearity() {
     let b = Scalar::from_literal(124959043234u128);
     let c = a * b;
     
-    let p = pairing(g1mult(a, g1()), g2mult(b, g2()));
+    let p = pairing(g1mul(a, g1()), g2mul(b, g2()));
     //e(a*g1, b*g2) = e(c*g1, g2) = e(g1, g1)*c with c = a * b
-    assert_eq!(p, pairing(g1mult(c, g1()), g2()));
+    assert_eq!(p, pairing(g1mul(c, g1()), g2()));
     //e(a*g1, b*g2) = e(g1, g2)^(a*b)
     assert_eq!(p, fp12exp(pairing(g1(), g2()), c)); 
 }   
@@ -40,7 +40,4 @@ fn test_pairing_unitary() {
     assert_eq!(p, q);
     assert_eq!(q, r);
 }
-
-
-
 
