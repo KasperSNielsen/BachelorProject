@@ -1,6 +1,5 @@
 // BLS: y^2 = x^3 + 4
 
-
 use hacspec_lib::*;
 
 public_nat_mod!( //Custom Macro - defining a newtype with some functions - well defined macro's have library functions built in
@@ -25,7 +24,7 @@ public_nat_mod!( //Custom Macro - defining a new type with some functions - well
 
 
 //Returns index of left-most bit, set to 1
-fn most_significant_bit(m: Scalar, n: usize) -> usize 
+fn most_significant_bit(m: Scalar, n: usize) -> usize //usize does not have a secret integer implementation
 {
     
     if n > 0 && !m.bit(n) {
@@ -39,8 +38,6 @@ pub type Fp2 = (Fp, Fp); //(10, 8) = (10+8u) : u² = -1
 pub type G2 = (Fp2, Fp2, bool);
 pub type Fp6 = (Fp2, Fp2, Fp2); //v³ = u + 1
 pub type Fp12 = (Fp6, Fp6); //w² = v
-
-
 
 
 /* Arithmetic for FP2 elements */
@@ -210,7 +207,7 @@ pub fn fp12inv(n: Fp12) -> Fp12 {
 }
 
 pub fn fp12exp(n: Fp12, k: Scalar) -> Fp12 {
-    let l = 255 - most_significant_bit(k, 255);
+    let l = 255 - most_significant_bit(k, 255); //has a timing side channel issue
     let mut c = n;
     for i in l..255 { //starting from second most significant bit
         c = fp12mul(c, c);
@@ -287,7 +284,7 @@ pub fn g1double(p: G1) -> G1 {
 pub fn g1mul(m: Scalar, p: G1) -> G1
 {
     let n = 255;
-    let k = n - most_significant_bit(m, n);
+    let k = n - most_significant_bit(m, n); //has a timing side channel issue
     let mut t = p;
     for i in k..n { //starting from second most significant bit
         t = g1double(t);
@@ -371,7 +368,7 @@ pub fn g2double(p: G2) -> G2 {
 pub fn g2mul(m: Scalar, p: G2) -> G2
 {
     let n = 255;
-    let k = n - most_significant_bit(m, n);
+    let k = n - most_significant_bit(m, n); //has a timing side channel issue
     let mut t = p;
     for i in k..n { //starting from second most significant bit
         t = g2double(t);

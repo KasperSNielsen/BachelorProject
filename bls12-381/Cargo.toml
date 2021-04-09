@@ -1,5 +1,5 @@
 [package]
-name = "bls12-381"
+name = "hacspec-bls12-381"
 version = "1.0.0"
 authors = ["Kasper S. Nielsen <Kasper@s-nielsen.dk>", "Mathias Rud Laursen <mathias_rud@hotmail.com>"]
 edition = "2018"
@@ -9,8 +9,14 @@ edition = "2018"
 [lib]
 path = "src/bls12-381.rs"
 
+[[bin]]
+name = "impl-traits"
+path = "src/impl-traits.rs"
+
 [dependencies]
-hacspec-lib = { git = "https://github.com/hacspec/hacspec/" }
+hacspec-lib = { git = "https://github.com/hacspec/hacspec"}
+pairing = "0"
+group = "0"
 
 [dev-dependencies]
 quickcheck = "1"
