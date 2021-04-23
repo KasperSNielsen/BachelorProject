@@ -1,1 +1,6 @@
 **/target/**
+*.glob
+*.vo
+*.vok
+*.vos
+*.aux
