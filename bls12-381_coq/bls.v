@@ -743,6 +743,36 @@ Definition r := nat_mod_0x800000000000000000000000000000000000000000000000000000
 
 Theorem g1gen_rth_unity: let '(_, inf) := (g1mul r g1gen) in inf = true.
 Proof.
-  
+Admitted.  
 
 
+Require Import Crypto.Spec.WeierstrassCurve.
+Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
+Require Import Crypto.Util.Decidable Crypto.Util.Tactics.DestructHead Crypto.Util.Tactics.BreakMatch.
+Check @W.add.
+(*Context {F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {field:@Algebra.Hierarchy.field F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {Feq_dec:Decidable.DecidableRel Feq} {char_ge_3:@Ring.char_ge F Feq Fzero Fone Fopp Fadd Fsub Fmul (BinNat.N.succ_pos (BinNat.N.two))}.
+Local Infix "=" := Feq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
+Local Notation "x =? y" := (Decidable.dec (Feq x y)) (at level 70, no associativity) : type_scope.
+Local Notation "x =? y" := (Sumbool.bool_of_sumbool (Decidable.dec (Feq x y))) : bool_scope.
+Local Infix "+" := Fadd. Local Infix "*" := Fmul.
+Local Infix "-" := Fsub. Local Infix "/" := Fdiv.
+Local Notation "- x" := (Fopp x).
+Local Notation "x ^ 2" := (x*x) (at level 30). Local Notation "x ^ 3" := (x*x^2) (at level 30).
+Local Notation "'∞'" := unit : type_scope.
+Local Notation "'∞'" := (inr tt) : core_scope.
+
+Local Notation "( x , y )" := (inl (pair x y)).
+Local Open Scope core_scope.
+Local Open Scope W_scope.*)
+
+(*Definition feq a b: fp := .*)
+
+Definition nat_div a b: fp := a * (nat_inv b) .
+
+
+Lemma bls_field_is_field: @Algebra.Hierarchy.field fp eqm nat_zero nat_one neg add sub mul nat_inv nat_div.
+Proof.
+Admitted. 
+
+
+Example simpelstuff: W.eq (W.add W.zero W.zero) W.zero.
