@@ -774,5 +774,46 @@ Lemma bls_field_is_field: @Algebra.Hierarchy.field fp eqm nat_zero nat_one neg a
 Proof.
 Admitted. 
 
+Require Import Blsprime.blsprime.
+Check blsprime.
+
+Require Import Ring.
+
+Require Export Ring_theory.
+Require Import Setoid.
+
+
+Lemma fp_ring_theory: ring_theory nat_zero nat_one add mul sub neg (fun x y : int => x = y).
+Proof. destruct (mk_rt nat_zero nat_one add mul sub neg (fun x y : int => x = y)).
+- apply add_zero_l.
+- apply add_commut.
+- symmetry. apply add_assoc.
+- intros x. rewrite mul_commut. apply mul_one.
+- apply mul_commut.
+- symmetry. apply mul_assoc.
+- apply mul_add_distr_l.
+- apply sub_add_opp.
+- apply add_neg_zero.
+-   
+Admitted.
+
+Example test: forall x y:fp, x * y = y * x.
+Proof. apply fp_ring_theory.
+Qed.
+
+Lemma fp2_add_neg2: forall a: fp2, fp2add a (fp2neg a) = fp2zero.
+Proof. intros a. unfold fp2neg, fp2add, fp2zero, fp2fromfp. destruct a. apply pair_equal_spec. split.
+- apply fp_ring_theory.
+- apply fp_ring_theory.
+Qed.
+
+
+(*
+Section Ring.
+  Lemma Radd_0_l: forall x:fp, nat_zero + x == x.
+  Proof. intros x.
+End Ring.
+*)
+
 
 Example simpelstuff: W.eq (W.add W.zero W.zero) W.zero.

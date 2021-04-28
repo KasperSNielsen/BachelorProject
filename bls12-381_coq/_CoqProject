@@ -1,2 +1,3 @@
 -I .
 -R ../../fiat-crypto/src Crypto
+-Q Blsprime Blsprime
