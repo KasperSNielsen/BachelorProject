@@ -749,7 +749,6 @@ Admitted.
 Require Import Crypto.Spec.WeierstrassCurve.
 Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
 Require Import Crypto.Util.Decidable Crypto.Util.Tactics.DestructHead Crypto.Util.Tactics.BreakMatch.
-Check @W.add.
 (*Context {F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {field:@Algebra.Hierarchy.field F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {Feq_dec:Decidable.DecidableRel Feq} {char_ge_3:@Ring.char_ge F Feq Fzero Fone Fopp Fadd Fsub Fmul (BinNat.N.succ_pos (BinNat.N.two))}.
 Local Infix "=" := Feq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
 Local Notation "x =? y" := (Decidable.dec (Feq x y)) (at level 70, no associativity) : type_scope.
@@ -782,9 +781,14 @@ Require Import Ring.
 Require Export Ring_theory.
 Require Import Setoid.
 
+Definition nat_eq (x y: fp): Prop := x = y.
+Lemma nat_eq_ok: forall x y, (x = y) = nat_eq x y.
+Proof. reflexivity.
+Qed.
 
-Lemma fp_ring_theory: ring_theory nat_zero nat_one add mul sub neg (fun x y : int => x = y).
-Proof. destruct (mk_rt nat_zero nat_one add mul sub neg (fun x y : int => x = y)).
+
+Lemma fp_ring_theory: ring_theory nat_zero nat_one add mul sub neg nat_eq.
+Proof. split.
 - apply add_zero_l.
 - apply add_commut.
 - symmetry. apply add_assoc.
@@ -794,12 +798,13 @@ Proof. destruct (mk_rt nat_zero nat_one add mul sub neg (fun x y : int => x = y)
 - apply mul_add_distr_l.
 - apply sub_add_opp.
 - apply add_neg_zero.
--   
-Admitted.
-
-Example test: forall x y:fp, x * y = y * x.
-Proof. apply fp_ring_theory.
 Qed.
+
+
+
+Add Ring fp_ring: fp_ring_theory (decidable same_if_eq).
+
+
 
 Lemma fp2_add_neg2: forall a: fp2, fp2add a (fp2neg a) = fp2zero.
 Proof. intros a. unfold fp2neg, fp2add, fp2zero, fp2fromfp. destruct a. apply pair_equal_spec. split.
@@ -807,7 +812,37 @@ Proof. intros a. unfold fp2neg, fp2add, fp2zero, fp2fromfp. destruct a. apply pa
 - apply fp_ring_theory.
 Qed.
 
+Require Import Coq.setoid_ring.Field.
 
+
+
+Lemma fp_field_theory: field_theory nat_zero nat_one add mul sub neg nat_div nat_inv nat_eq.
+Proof. split.
+- apply fp_ring_theory.
+- unfold nat_eq. unfold "<>". intros H. discriminate.
+- reflexivity.
+- intro x. unfold nat_eq. intros H. rewrite mul_commut. apply nat_inv_is_multiplicative_inverse.
+Qed.
+
+Add Field fp_field: fp_field_theory.
+
+Example test: forall x y:fp, nat_eq (x * y)  (y * x).
+Proof. intros x y. field.
+Qed.
+
+Lemma help: forall f1 f2, (f1 * f1 + f2 * f2) = nat_zero -> f1 = nat_zero /\ f2 = nat_zero.
+Admitted.
+
+Theorem fp2_mul_inv2: forall a: fp2, a <> fp2zero -> fp2mul a (fp2inv a) = fp2fromfp (nat_one).
+Proof.
+  intros a H. unfold fp2mul, fp2inv, fp2fromfp. destruct a. apply pair_equal_spec. split.
+  - rewrite nat_eq_ok. field. intros H1. unfold "<>" in H. apply H. unfold fp2zero, fp2fromfp.
+  apply help in H1. destruct H1. rewrite H0. rewrite H1. reflexivity.
+  - rewrite nat_eq_ok.
+    assert (zero = nat_zero). {reflexivity. } rewrite H0. field.
+    intros H1. unfold "<>" in H. apply H. unfold fp2zero, fp2fromfp.
+    apply help in H1. destruct H1. rewrite H1. rewrite H2. reflexivity.
+Qed.
 (*
 Section Ring.
   Lemma Radd_0_l: forall x:fp, nat_zero + x == x.
@@ -816,4 +851,42 @@ End Ring.
 *)
 
 
-Example simpelstuff: W.eq (W.add W.zero W.zero) W.zero.
+About field.
+Instance fp_fc_field : @field fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div.
+Proof.
+  repeat split; try apply (Fdiv_def fp_field_theory); try (intros ; field); try apply (_ (fp_field_theory)); auto.
+  - symmetry; apply (F_1_neq_0 (fp_field_theory)).
+Qed.
+
+About Decidable.
+Lemma test324: DecidableRel nat_eq.
+Proof. unfold Decidable. unfold nat_eq. Admitted.
+
+About positive.
+Check @Hierarchy.char_ge fp nat_eq nat_zero.
+About of_Z.
+Check @of_Z fp nat_zero nat_one neg add.
+
+
+Check @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
+
+Lemma fp_char_ge:  @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
+Proof. 
+  unfold char_ge. unfold Hierarchy.char_ge. intros p H. intros H1.
+Admitted.
+
+
+Check @W.add fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div fp_fc_field test324 fp_char_ge nat_zero (repr 4).
+Check @W.point.
+Check @W.eq fp nat_eq add mul nat_zero (repr 4).
+
+Definition g1_fc_point := @W.point fp nat_eq add mul nat_zero (repr 4).
+Definition g1_fc_eq := @W.eq fp nat_eq add mul nat_zero (repr 4).
+Definition g1_fc_add (p1 p2 :g1_fc_point ) :g1_fc_point := @W.add fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div fp_fc_field test324 fp_char_ge nat_zero (repr 4) p1 p2.
+Definition g1_fc_zero := @W.zero fp nat_eq add mul nat_zero (repr 4).
+Check @g1_fc_add.
+
+About char_ge.
+Example simpelstuff: g1_fc_eq (g1_fc_add g1_fc_zero g1_fc_zero) g1_fc_zero.
+Proof. reflexivity.
+Qed.
