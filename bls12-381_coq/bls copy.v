@@ -343,25 +343,12 @@ Definition g1double_a (p_142 : g1) : g1 :=
 (* TODO *)
 Axiom g1_eqb : g1 -> g1 -> bool.
 
-Definition g1double (p_157 : g1) : g1 :=
-  let '(x1_158, y1_159, inf1_160) := p_157 in
-  if (
-    (negb (eq
-       (y1_159) (
-        nat_zero))) && (
-      negb (inf1_160))) then (g1double_a (p_157)) else (
-    (
-      nat_zero,
-      nat_zero,
-      true
-    )).
-
 Definition g1add (p_149 : g1) (q_150 : g1) : g1 :=
   let '(x1_151, y1_152, inf1_153) := p_149 in
   let '(x2_154, y2_155, inf2_156) := q_150 in
   if (inf1_153) then (q_150) else (
     if (inf2_156) then (p_149) else (
-      if (g1_eqb (p_149) (q_150)) then (g1double (p_149)) else (
+      if (g1_eqb (p_149) (q_150)) then (g1double_a (p_149)) else (
         if (
           negb (
             (eq (x1_151) (x2_154)) && (
@@ -375,7 +362,18 @@ Definition g1add (p_149 : g1) (q_150 : g1) : g1 :=
             true
           ))))).
 
-
+Definition g1double (p_157 : g1) : g1 :=
+  let '(x1_158, y1_159, inf1_160) := p_157 in
+  if (
+    (negb (eq
+       (y1_159) (
+        nat_zero))) && (
+      negb (inf1_160))) then (g1double_a (p_157)) else (
+    (
+      nat_zero,
+      nat_zero,
+      true
+    )).
 
 Definition g1mul (m_161 : scalar) (p_162 : g1) : g1 :=
   let n_163 := usize 255 in
@@ -870,7 +868,7 @@ Proof.
 
 About Decidable.
 Lemma g1_dec: DecidableRel nat_eq.
-Proof.  unfold Decidable. unfold nat_eq. apply eq_dec.
+Proof.  unfold Decidable. unfold nat_eq. intros x y. generalize (eq_spec x y). destruct (eq x y) eqn:E. intros H. decide equality.
 Qed.
 
 About positive.
@@ -948,63 +946,15 @@ Definition g1_eq (x y: g1) :=
     x1 = y1 /\ x2 = y2.
 
 Axiom same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
-Axiom g1_eqb_true: forall p, g1_eqb p p = true.
 
-Axiom helper3: forall x, nat_eq x (neg x) -> x = nat_zero.
+About DecidableRel.
 
-Lemma helper4: repr 3 = nat_one + nat_one + nat_one.
-Proof. reflexivity.
-Qed.
 
-Lemma helper5: nat_two = nat_one + nat_one.
-Proof. reflexivity.
-Qed.
 
-Lemma helper56: forall x y z, x - y = z -> x = y + z.
-Proof. intros x y z H. rewrite <- H. rewrite sub_add_opp. rewrite <- add_assoc. rewrite add_commut. rewrite <- add_assoc. 
-  rewrite (add_commut (neg y) y). rewrite add_neg_zero. rewrite add_zero_l. reflexivity.
-Qed.
+About dec.
 
-Lemma helper6: forall x y, x - y = nat_zero <-> x = y.
-Proof. split. 
-  - intros H. apply helper56 in H. unfold nat_zero. rewrite add_commut in H. rewrite add_zero_l in H. apply H.
-  - intros H. rewrite H. rewrite sub_idem. reflexivity.
-Qed.
-
-Require Import Algebra.IntegralDomain.
-Check @integral_domain.
-
-Check @Field.integral_domain.
-
-Definition fp_integral_domain := @Field.integral_domain fp nat_eq nat_zero nat_one neg add mul sub nat_inv nat_div fp_fc_field g1_dec.
-
-Definition nonzero_iff := @IntegralDomain.nonzero_product_iff_nonzero_factors fp nat_eq nat_zero nat_one neg add sub mul fp_integral_domain.
-
-Check @IntegralDomain.nonzero_product_iff_nonzero_factors.
-
-Lemma helper67: forall x y, x * x - y * y = (x + y) * (x - y).
-Proof. intros x y. rewrite (sub_add_opp x y). rewrite mul_add_distr_l. repeat rewrite mul_add_distr_r. 
-  rewrite <- add_assoc. rewrite (add_assoc (x*x) (x * neg y) (y*x)). rewrite (mul_commut y x). rewrite <- mul_add_distr_r. rewrite (add_commut (neg y) y). 
-  rewrite add_neg_zero. rewrite mul_zero. rewrite (add_commut (x*x) zero). rewrite add_zero_l. rewrite <- neg_mul_distr_r. rewrite <- sub_add_opp.
-  reflexivity.
-Qed.
-
-Lemma helper7: forall x1 y1 x2 y2, g1_on_curve (x1, y1, false) -> g1_on_curve (x2, y2, false) -> x1 = x2 -> y1 = y2 \/ y1 = neg y2.
-Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2)). intro H4.
-  unfold g1_on_curve in H1. unfold g1_on_curve in H2. rewrite <- H3 in H2. rewrite <- H2 in H1. apply helper6 in H1. rewrite helper67 in H1.
-  apply not_iff_compat in H4. rewrite H1 in H4. unfold nat_eq in H4. destruct H4. apply Classical_Prop.not_and_or in H. 
-  - destruct H.
-    + right. apply helper6. rewrite sub_add_opp. rewrite neg_involutive. apply Classical_Prop.NNPP. apply H.
-    + left. apply helper6. apply Classical_Prop.NNPP. apply H.
-  - intros contra. destruct contra. reflexivity.
-Qed.
-
-Lemma exp2ismul: forall x, nat_exp x (pub_u32 2) = x * x.
-Proof. intros x. unfold nat_exp, Z.pow, unsigned, intval. 
-Admitted.
-
-Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> g1_eq (g1add p q) (g1_from_fc (g1_fc_add (g1_to_fc p) (g1_to_fc q))). 
-Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
+Lemma stuff: forall p q: g1, g1_on_curve p /\ g1_on_curve q -> g1_eq (g1add p q) (g1_from_fc (g1_fc_add (g1_to_fc p) (g1_to_fc q))). 
+Proof. intros p q H. destruct H. unfold g1add. destruct p. destruct p. destruct q. 
   unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
   destruct b eqn:E.
   - destruct b0 eqn:E1.
@@ -1014,44 +964,8 @@ Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q.
     + unfold g1_on_curve in H. rewrite <- H. rewrite eq_true. split. reflexivity. reflexivity.
     + unfold g1_on_curve in H. unfold g1_on_curve in H0. rewrite H0. rewrite H. rewrite eq_true. rewrite eq_true.
       destruct (g1_eqb (f, f0, false) (f1, f2, false)) eqn:E2. 
-      * simpl. destruct (eq f0 nat_zero) eqn:E3. 
-        -- simpl. apply same_if_g1_eq in E2. unfold g1_eq in E2. destruct E2. rewrite H1. unfold nat_eq. unfold dec. destruct (g1_dec f1 f1) eqn:E6. 
-          ++ destruct (g1_dec f2 (neg f0)).
-            ** reflexivity.
-            ** rewrite <- H2 in n0. apply same_if_eq in E3. rewrite E3 in n0. destruct n0. reflexivity.
-          ++ destruct n. reflexivity.
-        -- simpl. apply same_if_g1_eq in E2. simpl in E2. destruct E2. destruct (dec (nat_eq f f1)).
-          ++ destruct (dec (nat_eq f2 (neg f0))).
-            ** rewrite <- H2 in n0. apply helper3 in n0. rewrite n0 in E3. rewrite eq_true in E3. discriminate E3.
-            ** repeat rewrite exp2ismul. split.
-              --- rewrite nat_eq_ok. rewrite H1. rewrite helper4. rewrite helper5. field. split.
-                +++ unfold nat_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
-                +++ unfold nat_eq. intros c. discriminate c.
-              --- rewrite helper4. rewrite helper5. rewrite nat_eq_ok. rewrite H1. field. split. 
-                +++ unfold nat_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
-                +++ unfold nat_eq. intros c. discriminate c.
-          ++ rewrite H1 in n. destruct n. reflexivity.
-      * destruct (eq f f1) eqn:E3.
-        -- destruct (eq f0 (nat_zero - f2)) eqn:E4.
-          ++ simpl. destruct (dec (nat_eq f f1)).
-            ** destruct (dec (nat_eq f2 (neg f0))).
-              --- reflexivity.
-              --- apply same_if_eq in E4. rewrite E4 in n0. destruct n0. unfold nat_zero. rewrite (sub_zero_r f2). rewrite neg_involutive. reflexivity.
-            ** destruct n. unfold nat_eq. apply (same_if_eq _ _ E3).
-          ++ simpl. exfalso. generalize (helper7 f f0 f1 f2). unfold g1_on_curve. apply same_if_eq in E3. intros c. apply (c H H0) in E3 as H7. destruct H7.
-            ** rewrite E3 in E2. rewrite H1 in E2. rewrite g1_eqb_true in E2. discriminate.
-            ** rewrite H1 in E4. unfold nat_zero in E4. rewrite <- sub_zero_r in E4. rewrite eq_true in E4. discriminate E4.
-        -- simpl. destruct (dec (nat_eq f f1)).
-          ++ unfold nat_eq in n. rewrite n in E3. rewrite eq_true in E3. discriminate E3.
-          ++ rewrite exp2ismul. split.
-            ** rewrite nat_eq_ok. field. unfold nat_eq. intros H1. rewrite helper6 in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
-            ** rewrite nat_eq_ok. field. unfold nat_eq. intros H1. rewrite helper6 in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
-Qed.
-    
+      * apply same_if_g1_eq in E2. unfold g1_eq in E2. destruct E2. rewrite H1. unfold nat_eq. unfold dec. solve_decidable_transparent. rewrite g1_dec_true.
 
-
-Lemma stuff: forall p q: g1_fc_point, g1_fc_eq (g1_fc_add p q) (g1_to_fc (g1add (g1_from_fc p) (g1_from_fc q))).
-Proof. intros p q. rewrite g1_addition_equal.
 
 About g1_fc_point.
 About sig.
