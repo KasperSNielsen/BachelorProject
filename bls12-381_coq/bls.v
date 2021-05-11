@@ -57,7 +57,8 @@ Definition scalar :=
 (* TODO *)
 Axiom nat_bit : N -> scalar -> uint_size -> bool.
 Axiom most_significant_bit : scalar -> uint_size -> uint_size.
-Axiom N_to_int : N -> int.
+Axiom N_to_int : N -> int. 
+Axiom N_to_int2 : N_to_int (pub_u32 2) = repr 2.
 Coercion N_to_int : N >-> int.
 Coercion Z.of_N : N >-> Z.
 
@@ -881,14 +882,22 @@ Check @of_Z fp nat_zero nat_one neg add.
 
 Check @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
 
+About of_nat.
+
+Lemma pos_le_three: forall pos: positive, (pos < 3)%positive -> pos = 1%positive \/ pos = 2%positive.
+Proof. intros pos. induction pos.
+- intros H. simpl in H. inversion H. unfold Pos.compare, Pos.compare_cont in H1. destruct pos; inversion H1.
+- intros H. assert (pos = 1%positive). inversion H. unfold Pos.compare, Pos.compare_cont in H1. destruct pos; inversion H1. reflexivity.
+  rewrite H0. right. reflexivity.
+- intros H. left. reflexivity.
+Qed.
 
 Lemma fp_char_ge:  @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
 Proof. 
-  unfold char_ge. unfold Hierarchy.char_ge. intros p. simpl. intros H.  destruct (Pos.to_nat p) eqn:H1.
-  - unfold Pos.to_nat in H1. destruct p.
-    + simpl in H1. discriminate H1.
-    + simpl in H1. 
-Admitted.
+  unfold char_ge. unfold Hierarchy.char_ge. intros pos. simpl. intros H. unfold nat_eq. apply pos_le_three in H. destruct H.
+  - rewrite H. simpl. unfold nat_zero. rewrite add_zero_l. intro c. discriminate c.
+  - rewrite H. simpl. unfold nat_zero. rewrite add_zero_l. intro c. discriminate c.
+Qed.
 
 Check fp_char_ge.
 About BinNat.N.two.
@@ -950,7 +959,7 @@ Definition g1_eq (x y: g1) :=
 Axiom same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
 Axiom g1_eqb_true: forall p, g1_eqb p p = true.
 
-Axiom helper3: forall x, nat_eq x (neg x) -> x = nat_zero.
+
 
 Lemma helper4: repr 3 = nat_one + nat_one + nat_one.
 Proof. reflexivity.
@@ -960,9 +969,11 @@ Lemma helper5: nat_two = nat_one + nat_one.
 Proof. reflexivity.
 Qed.
 
-Lemma helper56: forall x y z, x - y = z -> x = y + z.
-Proof. intros x y z H. rewrite <- H. rewrite sub_add_opp. rewrite <- add_assoc. rewrite add_commut. rewrite <- add_assoc. 
-  rewrite (add_commut (neg y) y). rewrite add_neg_zero. rewrite add_zero_l. reflexivity.
+Lemma helper56: forall x y z, x - y = z <-> x = y + z.
+Proof. intros x y z. split.
+  - intros H. rewrite <- H. rewrite sub_add_opp. rewrite <- add_assoc. rewrite add_commut. rewrite <- add_assoc. 
+    rewrite (add_commut (neg y) y). rewrite add_neg_zero. rewrite add_zero_l. reflexivity.
+  - intros H. rewrite H. rewrite nat_eq_ok. field.
 Qed.
 
 Lemma helper6: forall x y, x - y = nat_zero <-> x = y.
@@ -982,6 +993,19 @@ Definition nonzero_iff := @IntegralDomain.nonzero_product_iff_nonzero_factors fp
 
 Check @IntegralDomain.nonzero_product_iff_nonzero_factors.
 
+Lemma helper2: forall p: Prop, p -> ~~p.
+Proof. intros P H H1. contradiction. Qed. 
+
+Lemma helper3: forall x, nat_eq x (neg x) -> x = nat_zero.
+Proof. intros x H. unfold nat_eq in H. rewrite <- add_zero_l in H. rewrite add_commut in H. rewrite <- helper56 in H.
+  rewrite sub_add_opp in H. rewrite neg_involutive in H. unfold nat_zero. 
+  assert (x + x = mul nat_two x). { rewrite helper5. rewrite nat_eq_ok. field. }
+  rewrite H0 in H. generalize (nonzero_iff nat_two x). intros H1. apply not_iff_compat in H1. destruct H1.
+  unfold nat_eq in H1. apply helper2 in H. apply H1 in H. apply Classical_Prop.not_and_or in H. destruct H.
+  - destruct H. intros c. discriminate c.
+  - apply Classical_Prop.NNPP in H. unfold nat_zero in H. apply H.
+Qed.
+
 Lemma helper67: forall x y, x * x - y * y = (x + y) * (x - y).
 Proof. intros x y. rewrite (sub_add_opp x y). rewrite mul_add_distr_l. repeat rewrite mul_add_distr_r. 
   rewrite <- add_assoc. rewrite (add_assoc (x*x) (x * neg y) (y*x)). rewrite (mul_commut y x). rewrite <- mul_add_distr_r. rewrite (add_commut (neg y) y). 
@@ -999,8 +1023,11 @@ Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2))
   - intros contra. destruct contra. reflexivity.
 Qed.
 
+About Zbits.P_mod_two_p.
+
 Lemma exp2ismul: forall x, nat_exp x (pub_u32 2) = x * x.
-Proof. intros x. unfold nat_exp, Z.pow, unsigned, intval. 
+Proof. intros x. unfold nat_exp. unfold unsigned. unfold intval. rewrite N_to_int2. simpl. destruct x as (a,p).
+  simpl. unfold Zbits.P_mod_two_p. compute.  
 Admitted.
 
 Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> g1_eq (g1add p q) (g1_from_fc (g1_fc_add (g1_to_fc p) (g1_to_fc q))). 
