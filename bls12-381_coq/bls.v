@@ -72,16 +72,23 @@ Coercion Z.of_N : N >-> Z.
           m_0) (n_1)))) then (
     most_significant_bit (m_0) ((n_1) - (usize 1))) else (n_1). *)
 
-Definition nat_zero := zero.
-Definition nat_one := one.
-Definition nat_two := repr 2.
-Definition nat_exp (x y : int) := repr (Z.pow (unsigned x) (unsigned y)).
+Infix "-" := sub.
+Infix "+" := add.
+Infix "*" := mul.
 
-Axiom nat_inv : int -> int.
-Axiom nat_inv_is_multiplicative_inverse : forall (n : int), mul n (nat_inv n) = one.
+Definition fp_zero := zero.
+Definition fp_one := one.
+Definition fp_two := repr 2.
+Definition fp_exp (x y : int) := repr (Z.pow (unsigned x) (unsigned y)).
 
-Example test1 : mul nat_two (nat_inv nat_two) = nat_one. (* This should be "inv 1 = 1"*)
-Proof. apply nat_inv_is_multiplicative_inverse. Qed.
+Axiom fp_inv : int -> int.
+Axiom fp_inv_is_multiplicative_inverse : forall (n : int), mul n (fp_inv n) = one.
+
+Definition fp_div a b: fp := a * (fp_inv b) .
+
+
+Example test1 : mul fp_two (fp_inv fp_two) = fp_one. (* This should be "inv 1 = 1"*)
+Proof. apply fp_inv_is_multiplicative_inverse. Qed.
 
 
 Definition fp2fromfp (n_2 : fp) : fp2 :=
@@ -92,20 +99,18 @@ Definition fp2fromfp (n_2 : fp) : fp2 :=
 
 Definition fp2zero : fp2 :=
   fp2fromfp (
-    nat_zero).
+    fp_zero).
 
-Infix "-" := sub.
-Infix "+" := add.
-Infix "*" := mul.
+
 
 Definition fp2neg (n_3 : fp2) : fp2 :=
   let (n1_4, n2_5) := n_3 in
   (
     (
-      nat_zero) - (
+      fp_zero) - (
       n1_4),
     (
-      nat_zero) - (
+      fp_zero) - (
       n2_5)
   ).
 
@@ -129,13 +134,13 @@ Definition fp2inv (n_22 : fp2) : fp2 :=
   let (n1_23, n2_24) := n_22 in
   let t0_25 := ((n1_23) * (n1_23)) + ((n2_24) * (n2_24)) in
   let t1_26 :=
-    nat_inv (
+    fp_inv (
       t0_25)
   in
   let x1_27 := (n1_23) * (t1_26) in
   let x2_28 :=
     (
-      nat_zero) - (
+      fp_zero) - (
       (n2_24) * (t1_26))
   in
   (x1_27, x2_28).
@@ -145,7 +150,7 @@ Definition fp2conjugate (n_29 : fp2) : fp2 :=
   (
     n1_30,
     (
-      nat_zero) - (
+      fp_zero) - (
       n2_31)
   ).
 
@@ -176,8 +181,8 @@ Definition fp6mul (n_47 : fp6) (m_48 : fp6) : fp6 :=
   let '(m1_52, m2_53, m3_54) := m_48 in
   let eps_55 :=
     (
-      nat_one,
-      nat_one
+      fp_one,
+      fp_one
     )
   in
   let t1_56 := fp2mul (n1_49) (m1_52) in
@@ -198,8 +203,8 @@ Definition fp6inv (n_68 : fp6) : fp6 :=
   let '(n1_69, n2_70, n3_71) := n_68 in
   let eps_72 :=
     (
-      nat_one,
-      nat_one
+      fp_one,
+      fp_one
     )
   in
   let t1_73 := fp2mul (n1_69) (n1_69) in
@@ -242,7 +247,7 @@ Definition fp12mul (n_101 : fp12) (m_102 : fp12) : fp12 :=
     (
       fp2zero,
       fp2fromfp (
-        nat_one),
+        fp_one),
       fp2zero
     )
   in
@@ -259,7 +264,7 @@ Definition fp12inv (n_113 : fp12) : fp12 :=
     (
       fp2zero,
       fp2fromfp (
-        nat_one),
+        fp_one),
       fp2zero
     )
   in
@@ -309,13 +314,13 @@ Definition g1add_a (p_131 : g1) (q_132 : g1) : g1 :=
   let y_diff_138 := (y2_136) - (y1_134) in
   let xovery_139 :=
     (y_diff_138) * (
-      nat_inv (
+      fp_inv (
         x_diff_137))
   in
   let x3_140 :=
     (
       (
-        nat_exp (
+        fp_exp (
           xovery_139) (pub_u32 2)) - (x1_133)) - (x2_135)
   in
   let y3_141 := ((xovery_139) * ((x1_133) - (x3_140))) - (y1_134) in
@@ -324,18 +329,18 @@ Definition g1add_a (p_131 : g1) (q_132 : g1) : g1 :=
 Definition g1double_a (p_142 : g1) : g1 :=
   let '(x1_143, y1_144, _) := p_142 in
   let x12_145 :=
-    nat_exp (
+    fp_exp (
       x1_143) (pub_u32 2)
   in
   let xovery_146 :=
     ((repr (pub_u128 3)) * (x12_145)) * (
-      nat_inv ((nat_two  * (y1_144)))) in
+      fp_inv ((fp_two  * (y1_144)))) in
   let x3_147 :=
     (
-      nat_exp (
+      fp_exp (
         xovery_146) (pub_u32 2)) - (
       (
-        nat_two  * (
+        fp_two  * (
         x1_143)))
   in
   let y3_148 := ((xovery_146) * ((x1_143) - (x3_147))) - (y1_144) in
@@ -349,11 +354,11 @@ Definition g1double (p_157 : g1) : g1 :=
   if (
     (negb (eq
        (y1_159) (
-        nat_zero))) && (
+        fp_zero))) && (
       negb (inf1_160))) then (g1double_a (p_157)) else (
     (
-      nat_zero,
-      nat_zero,
+      fp_zero,
+      fp_zero,
       true
     )).
 
@@ -368,11 +373,11 @@ Definition g1add (p_149 : g1) (q_150 : g1) : g1 :=
             (eq (x1_151) (x2_154)) && (
               eq (y1_152)  (
                 (
-                  nat_zero) - (
+                  fp_zero) - (
                   y2_155))))) then (g1add_a (p_149) (q_150)) else (
           (
-            nat_zero,
-            nat_zero,
+            fp_zero,
+            fp_zero,
             true
           ))))).
 
@@ -404,7 +409,7 @@ Definition g1neg (p_167 : g1) : g1 :=
   (
     x_168,
     (
-      nat_zero) - (
+      fp_zero) - (
       y_169),
     inf_170
   ).
@@ -435,14 +440,14 @@ Definition g2double_a (p_186 : g2) : g2 :=
   let t2_191 :=
     fp2inv (
       fp2mul (
-        fp2fromfp nat_two) (y1_188))
+        fp2fromfp fp_two) (y1_188))
   in
   let xovery_192 := fp2mul (t1_190) (t2_191) in
   let t1_193 := fp2mul (xovery_192) (xovery_192) in
   let t2_194 :=
     fp2mul (
       fp2fromfp (
-        nat_two )) (
+        fp_two )) (
       x1_187)
   in
   let x3_195 := fp2sub (t1_193) (t2_194) in
@@ -515,7 +520,7 @@ Definition line_double_p (r_226 : g2) (p_227 : g1) : fp12 :=
       fp2inv (
         fp2mul (
           fp2fromfp (
-            nat_two )) (
+            fp_two )) (
           r1_229)))
   in
   let b_232 := fp2sub (r1_229) (fp2mul (a_231) (r0_228)) in
@@ -645,7 +650,7 @@ Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
     fp12fromfp6 (
       fp6fromfp2 (
         fp2fromfp (
-          nat_one)))
+          fp_one)))
   in
   let '(r_315, f_316) :=
     foldi (usize 1) (usize 64) (fun i_317 '(r_315, f_316) =>
@@ -671,126 +676,42 @@ Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
 
 Import nat_mod_0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab.
 
-Example test2: nat_one - nat_zero = nat_one.
-Proof. rewrite sub_zero_l. reflexivity.
-Qed.
-
-Lemma fp2_add_neg: forall a: fp2, fp2add a (fp2neg a) = fp2zero.
-Proof. intros a. unfold fp2neg. destruct a.  
-  setoid_rewrite sub_zero_r.
-  unfold fp2add. 
-  setoid_rewrite add_neg_zero.
-  reflexivity.
-Qed.
-
-(*
-
-    fn test_fp2_prop_mul_inv(a: Fp2) -> bool {
-        let b = fp2inv(a);
-        fp2fromfp(Fp::ONE()) == fp2mul(a, b)
-    }
-
-*)
-
-Theorem fp2_mul_inv: forall a: fp2, fp2mul a (fp2inv a) = fp2fromfp (nat_one).
-Proof.
-  intros a. unfold fp2inv, fp2mul. destruct a.
-  setoid_rewrite sub_zero_r.
-  rewrite sub_add_opp.
-  rewrite neg_mul_distr_r.
-  rewrite neg_involutive.
-  setoid_rewrite <- mul_assoc.
-  rewrite <- mul_add_distr_l.
-  rewrite nat_inv_is_multiplicative_inverse.
-  rewrite <- neg_mul_distr_r.
-  rewrite <- mul_assoc.
-  rewrite (mul_commut f f0).
-  rewrite add_commut.
-  rewrite add_neg_zero.
-  reflexivity.
-Qed.
-
-Lemma fp2_sub_zero_r: forall a: fp2, fp2sub fp2zero a = fp2neg a.
-Proof.
-  intros a. unfold fp2sub, fp2add. unfold fp2zero, fp2fromfp. destruct (fp2neg a).
-  setoid_rewrite add_zero_l. reflexivity.
-Qed.
-
-Theorem fp6_add_neg: forall a: fp6, fp6add a (fp6neg a) = fp6zero.
-Proof.
-  intros a. unfold fp6add, fp6neg. destruct a. destruct p.
-  setoid_rewrite fp2_sub_zero_r.
-  setoid_rewrite fp2_add_neg.
-  reflexivity.
-Qed.
-
-Theorem fp6_mul_inv: forall a: fp6, fp6mul a (fp6inv a) = fp6fromfp2 (fp2fromfp nat_one).
-Proof.
-Admitted.
-
-Theorem fp12_add_neg: forall a: fp12, fp12add a (fp12neg a) = fp12zero.
-Proof.
-Admitted.
-
-Theorem fp12_mul_inv: forall a: fp12, fp12mul a (fp12inv a) = fp12fromfp6 (fp6fromfp2 (fp2fromfp nat_one)).
-Proof.
-Admitted.
-
-Definition g1gen := (repr 0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb,
-                     repr 0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1,
-                     false).
-
-Definition r := nat_mod_0x8000000000000000000000000000000000000000000000000000000000000000.repr 
-                0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001.
-
-
-Theorem g1gen_rth_unity: let '(_, inf) := (g1mul r g1gen) in inf = true.
-Proof.
-Admitted.  
-
-
 Require Import Crypto.Spec.WeierstrassCurve.
 Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
 Require Import Crypto.Util.Decidable Crypto.Util.Tactics.DestructHead Crypto.Util.Tactics.BreakMatch.
-(*Context {F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {field:@Algebra.Hierarchy.field F Feq Fzero Fone Fopp Fadd Fsub Fmul Finv Fdiv} {Feq_dec:Decidable.DecidableRel Feq} {char_ge_3:@Ring.char_ge F Feq Fzero Fone Fopp Fadd Fsub Fmul (BinNat.N.succ_pos (BinNat.N.two))}.
-Local Infix "=" := Feq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
-Local Notation "x =? y" := (Decidable.dec (Feq x y)) (at level 70, no associativity) : type_scope.
-Local Notation "x =? y" := (Sumbool.bool_of_sumbool (Decidable.dec (Feq x y))) : bool_scope.
-Local Infix "+" := Fadd. Local Infix "*" := Fmul.
-Local Infix "-" := Fsub. Local Infix "/" := Fdiv.
-Local Notation "- x" := (Fopp x).
-Local Notation "x ^ 2" := (x*x) (at level 30). Local Notation "x ^ 3" := (x*x^2) (at level 30).
-Local Notation "'∞'" := unit : type_scope.
-Local Notation "'∞'" := (inr tt) : core_scope.
-
-Local Notation "( x , y )" := (inl (pair x y)).
-Local Open Scope core_scope.
-Local Open Scope W_scope.*)
-
-(*Definition feq a b: fp := .*)
-
-Definition nat_div a b: fp := a * (nat_inv b) .
-
-
-Lemma bls_field_is_field: @Algebra.Hierarchy.field fp eqm nat_zero nat_one neg add sub mul nat_inv nat_div.
-Proof.
-Admitted. 
-
 Require Import Blsprime.blsprime.
-Check blsprime.
-
 Require Import Ring.
-
 Require Export Ring_theory.
 Require Import Setoid.
 
-Definition nat_eq (x y: fp): Prop := x = y.
-Lemma nat_eq_ok: forall x y, (x = y) = nat_eq x y.
+(* Equality between fp elements *)
+Definition fp_eq (x y: fp): Prop := x = y.
+Lemma fp_eq_ok: forall x y, (x = y) <-> fp_eq x y.
 Proof. reflexivity.
 Qed.
 
+Definition fp_eqb x y := eq x y.
 
-Lemma fp_ring_theory: ring_theory nat_zero nat_one add mul sub neg nat_eq.
+(* Checking if a point is actually on the curve - since FC points are only defined as points on the curve, and our points are everyting from (fp, fp), this is needed *)
+Definition g1_on_curve (p:g1) := let '(x, y, inf) := p in if inf then True else y*y=x*x*x + (repr 4).
+
+(* Checking equivalence between two points in G1. First check is if they're pointAtInfinity, and if not, then check coordinates *)
+Definition g1_eq (x y: g1) := 
+  let '(x1, x2, xinf) := x in
+  let '(y1, y2, yinf) := y in
+  if xinf then yinf = true else
+    x1 = y1 /\ x2 = y2.
+
+
+(* If the boolean equality is the same, then the elements are the same 
+Axiomized because g1_eqb was not compiled *)
+Axiom same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
+
+(* Every element is equal itself *)
+Axiom g1_eqb_true: forall p, g1_eqb p p = true.
+
+
+Lemma fp_ring_theory: ring_theory fp_zero fp_one add mul sub neg fp_eq.
 Proof. split.
 - apply add_zero_l.
 - apply add_commut.
@@ -803,234 +724,159 @@ Proof. split.
 - apply add_neg_zero.
 Qed.
 
-
-
 Add Ring fp_ring: fp_ring_theory (decidable same_if_eq).
 
-
-
-Lemma fp2_add_neg2: forall a: fp2, fp2add a (fp2neg a) = fp2zero.
-Proof. intros a. unfold fp2neg, fp2add, fp2zero, fp2fromfp. destruct a. apply pair_equal_spec. split.
-- apply fp_ring_theory.
-- apply fp_ring_theory.
-Qed.
 
 Require Import Coq.setoid_ring.Field.
 
 
 
-Lemma fp_field_theory: field_theory nat_zero nat_one add mul sub neg nat_div nat_inv nat_eq.
+Lemma fp_field_theory: field_theory fp_zero fp_one add mul sub neg fp_div fp_inv fp_eq.
 Proof. split.
 - apply fp_ring_theory.
-- unfold nat_eq. unfold "<>". intros H. discriminate.
+- unfold fp_eq. unfold "<>". intros H. discriminate.
 - reflexivity.
-- intro x. unfold nat_eq. intros H. rewrite mul_commut. apply nat_inv_is_multiplicative_inverse.
+- intro x. unfold fp_eq. intros H. rewrite mul_commut. apply fp_inv_is_multiplicative_inverse.
 Qed.
 
 Add Field fp_field: fp_field_theory.
 
-Example test: forall x y:fp, nat_eq (x * y)  (y * x).
-Proof. intros x y. field.
-Qed.
-
-Lemma help: forall f1 f2, (f1 * f1 + f2 * f2) = nat_zero -> f1 = nat_zero /\ f2 = nat_zero.
-Admitted.
-
-Theorem fp2_mul_inv2: forall a: fp2, a <> fp2zero -> fp2mul a (fp2inv a) = fp2fromfp (nat_one).
-Proof.
-  intros a H. unfold fp2mul, fp2inv, fp2fromfp. destruct a. apply pair_equal_spec. split.
-  - rewrite nat_eq_ok. field. intros H1. unfold "<>" in H. apply H. unfold fp2zero, fp2fromfp.
-  apply help in H1. destruct H1. rewrite H0. rewrite H1. reflexivity.
-  - rewrite nat_eq_ok.
-    assert (zero = nat_zero). {reflexivity. } rewrite H0. field.
-    intros H1. unfold "<>" in H. apply H. unfold fp2zero, fp2fromfp.
-    apply help in H1. destruct H1. rewrite H1. rewrite H2. reflexivity.
-Qed.
-(*
-Section Ring.
-  Lemma Radd_0_l: forall x:fp, nat_zero + x == x.
-  Proof. intros x.
-End Ring.
-*)
-
-
-About field.
-Instance fp_fc_field : @field fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div.
+(* Fiat-crypto field from standard library field *)
+Instance fp_fc_field : @field fp fp_eq fp_zero fp_one neg add sub mul fp_inv fp_div.
 Proof.
   repeat split; try apply (Fdiv_def fp_field_theory); try (intros ; field); try apply (_ (fp_field_theory)); auto.
   - symmetry; apply (F_1_neq_0 (fp_field_theory)).
 Qed.
 
-(*
-Lemma test86: forall x y, nat_eq x y = (eq x y = true).
-Proof.
-  intros x y. unfold nat_eq. generalize (eq_spec x y). intros H.
-  destruct (eq x y) eqn:E. 
-  - rewrite H. apply eq_refl. *)
-
-
-About Decidable.
-Lemma g1_dec: DecidableRel nat_eq.
-Proof.  unfold Decidable. unfold nat_eq. apply eq_dec.
+Lemma g1_dec: DecidableRel fp_eq.
+Proof. unfold Decidable. unfold fp_eq. apply eq_dec.
 Qed.
 
-About positive.
-Check @Hierarchy.char_ge fp nat_eq nat_zero.
-About of_Z.
-Check @of_Z fp nat_zero nat_one neg add.
-
-
-Check @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
-
-About of_nat.
-
 Lemma pos_le_three: forall pos: positive, (pos < 3)%positive -> pos = 1%positive \/ pos = 2%positive.
-Proof. intros pos. induction pos.
-- intros H. simpl in H. inversion H. unfold Pos.compare, Pos.compare_cont in H1. destruct pos; inversion H1.
+Proof. intros pos. destruct pos.
+- intros H. inversion H. unfold Pos.compare, Pos.compare_cont in H1. destruct pos; inversion H1.
 - intros H. assert (pos = 1%positive). inversion H. unfold Pos.compare, Pos.compare_cont in H1. destruct pos; inversion H1. reflexivity.
   rewrite H0. right. reflexivity.
 - intros H. left. reflexivity.
 Qed.
 
-Lemma fp_char_ge:  @char_ge fp nat_eq nat_zero nat_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
+Lemma fp_char_ge:  @char_ge fp fp_eq fp_zero fp_one neg add sub mul (BinNat.N.succ_pos BinNat.N.two).
 Proof. 
-  unfold char_ge. unfold Hierarchy.char_ge. intros pos. simpl. intros H. unfold nat_eq. apply pos_le_three in H. destruct H.
-  - rewrite H. simpl. unfold nat_zero. rewrite add_zero_l. intro c. discriminate c.
-  - rewrite H. simpl. unfold nat_zero. rewrite add_zero_l. intro c. discriminate c.
+  unfold char_ge. unfold Hierarchy.char_ge. intros pos. simpl. intros H. unfold fp_eq. apply pos_le_three in H. destruct H.
+  - rewrite H. simpl. intro c. discriminate c.
+  - rewrite H. simpl. intro c. discriminate c.
 Qed.
 
-Check fp_char_ge.
-About BinNat.N.two.
-About Z.pos.
-About "<".
+(* Representation af a Fiat-crypto G1 point *)
+Definition g1_fc_point := @W.point fp fp_eq add mul fp_zero (repr 4). 
+(* Fiat-Crypto Equivalence, Addition and Zero element *)
+Definition g1_fc_eq := @W.eq fp fp_eq add mul fp_zero (repr 4).       
+Definition g1_fc_add (p1 p2 :g1_fc_point ) :g1_fc_point := @W.add fp fp_eq fp_zero fp_one neg add sub mul fp_inv fp_div fp_fc_field g1_dec fp_char_ge fp_zero (repr 4) p1 p2.
+Definition g1_fc_zero := @W.zero fp fp_eq add mul fp_zero (repr 4).
 
-Check @W.add fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div fp_fc_field g1_dec fp_char_ge nat_zero (repr 4).
-Check @W.point.
-Check @W.eq fp nat_eq add mul nat_zero (repr 4).
+(* ?x? is x performed by hacspec. #x# is x performed by Fiat-Crypto *)
+Infix "?+?" := g1add (at level 81).
+Infix "?=?" := g1_eq (at level 100).
+Infix "#+#" := g1_fc_add (at level 81).
+Infix "#=#" := g1_fc_eq (at level 100).
 
-Definition g1_fc_point := @W.point fp nat_eq add mul nat_zero (repr 4).
-Definition g1_fc_eq := @W.eq fp nat_eq add mul nat_zero (repr 4).
-Definition g1_fc_add (p1 p2 :g1_fc_point ) :g1_fc_point := @W.add fp nat_eq nat_zero nat_one neg add sub mul nat_inv nat_div fp_fc_field g1_dec fp_char_ge nat_zero (repr 4) p1 p2.
-Definition g1_fc_zero := @W.zero fp nat_eq add mul nat_zero (repr 4).
-Check @g1_fc_add.
-
-About char_ge.
-Example simpelstuff: g1_fc_eq (g1_fc_add g1_fc_zero g1_fc_zero) g1_fc_zero.
-Proof. unfold g1_fc_add, W.add. simpl. unfold g1_fc_zero. reflexivity.
+(* Checking the Fiat-Crypto functions actually work*)
+Example add_zero_is_zero_in_fc: (g1_fc_zero #+# g1_fc_zero) #=# g1_fc_zero.
+Proof. reflexivity.
 Qed.
 
+(* Translating Fiat-Crypto Point Representations to our G1 points (x, y, isPointAtInfinity) *)
 Definition g1_from_fc (p: g1_fc_point): g1 := 
   match W.coordinates p with
-  | inr tt => (nat_zero, nat_zero, true)
+  | inr tt => (fp_zero, fp_zero, true)
   | inl (pair x y) => (x, y, false)
   end.
 
-About inl.
-Check @inl (fp*fp) bool.
-About g1_fc_point.
 
-Definition nat_eqb x y := eq x y.
-
-
-
+(* Translating our points to Fiat-Crypto Points *)
 Program Definition g1_to_fc (p: g1): g1_fc_point :=
     match p return fp*fp+unit with
     | (_, _, true) => inr tt
-    | (x, y, false) => if nat_eqb (y*y) (x*x*x + (repr 4)) 
+    | (x, y, false) => if fp_eqb (y*y) (x*x*x + (repr 4)) 
       then inl (x, y) 
       else inr tt
     end.
     Next Obligation.
     Crypto.Util.Tactics.BreakMatch.break_match. 
     - trivial. 
-    - unfold nat_eqb in Heqb. apply same_if_eq in Heqb. rewrite Heqb. field. 
+    - unfold fp_eqb in Heqb. apply same_if_eq in Heqb. rewrite Heqb. field. 
     - trivial.
     Qed.
-    
 
-Definition g1_on_curve (p:g1) := let '(x, y, inf) := p in if inf then True else y*y=x*x*x + (repr 4).
-
-Definition g1_eq (x y: g1) := 
-  let '(x1, x2, xinf) := x in
-  let '(y1, y2, yinf) := y in
-  if xinf then yinf = true else
-    x1 = y1 /\ x2 = y2.
-
-Axiom same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
-Axiom g1_eqb_true: forall p, g1_eqb p p = true.
-
-
-
-Lemma helper4: repr 3 = nat_one + nat_one + nat_one.
+(* Some helper lemmas to rewrite to something field can handle *)
+Lemma three: repr 3 = fp_one + fp_one + fp_one.
 Proof. reflexivity.
 Qed.
 
-Lemma helper5: nat_two = nat_one + nat_one.
+Lemma two: fp_two = fp_one + fp_one.
 Proof. reflexivity.
 Qed.
 
-Lemma helper56: forall x y z, x - y = z <-> x = y + z.
+Lemma four: repr 4 = fp_one + fp_one + fp_one + fp_one.
+Proof. reflexivity.
+Qed.
+
+Lemma algebra_helper_1: forall x y z, x - y = z <-> x = y + z.
 Proof. intros x y z. split.
-  - intros H. rewrite <- H. rewrite sub_add_opp. rewrite <- add_assoc. rewrite add_commut. rewrite <- add_assoc. 
-    rewrite (add_commut (neg y) y). rewrite add_neg_zero. rewrite add_zero_l. reflexivity.
-  - intros H. rewrite H. rewrite nat_eq_ok. field.
+  - intros H. rewrite <- H. rewrite fp_eq_ok. field. 
+  - intros H. rewrite H. rewrite fp_eq_ok. field.
 Qed.
 
-Lemma helper6: forall x y, x - y = nat_zero <-> x = y.
+Lemma sub_eq_zero_means_same: forall x y, x - y = fp_zero <-> x = y.
 Proof. split. 
-  - intros H. apply helper56 in H. unfold nat_zero. rewrite add_commut in H. rewrite add_zero_l in H. apply H.
+  - intros H. apply algebra_helper_1 in H. rewrite H. rewrite fp_eq_ok. field.
   - intros H. rewrite H. rewrite sub_idem. reflexivity.
 Qed.
 
 Require Import Algebra.IntegralDomain.
-Check @integral_domain.
 
-Check @Field.integral_domain.
+(* Integral domain to help with som algebraic properties *)
+Definition fp_integral_domain := @Field.integral_domain fp fp_eq fp_zero fp_one neg add mul sub fp_inv fp_div fp_fc_field g1_dec.
 
-Definition fp_integral_domain := @Field.integral_domain fp nat_eq nat_zero nat_one neg add mul sub nat_inv nat_div fp_fc_field g1_dec.
+Definition nonzero_iff := @IntegralDomain.nonzero_product_iff_nonzero_factors fp fp_eq fp_zero fp_one neg add sub mul fp_integral_domain.
 
-Definition nonzero_iff := @IntegralDomain.nonzero_product_iff_nonzero_factors fp nat_eq nat_zero nat_one neg add sub mul fp_integral_domain.
-
-Check @IntegralDomain.nonzero_product_iff_nonzero_factors.
-
-Lemma helper2: forall p: Prop, p -> ~~p.
+Lemma double_negation: forall p: Prop, p -> ~~p.
 Proof. intros P H H1. contradiction. Qed. 
 
-Lemma helper3: forall x, nat_eq x (neg x) -> x = nat_zero.
-Proof. intros x H. unfold nat_eq in H. rewrite <- add_zero_l in H. rewrite add_commut in H. rewrite <- helper56 in H.
-  rewrite sub_add_opp in H. rewrite neg_involutive in H. unfold nat_zero. 
-  assert (x + x = mul nat_two x). { rewrite helper5. rewrite nat_eq_ok. field. }
-  rewrite H0 in H. generalize (nonzero_iff nat_two x). intros H1. apply not_iff_compat in H1. destruct H1.
-  unfold nat_eq in H1. apply helper2 in H. apply H1 in H. apply Classical_Prop.not_and_or in H. destruct H.
+Lemma negation_eq_implies_zero: forall x, fp_eq x (neg x) -> x = fp_zero.
+Proof. intros x H. unfold fp_eq in H. rewrite <- add_zero_l in H. rewrite add_commut in H. rewrite <- algebra_helper_1 in H.
+  rewrite sub_add_opp in H. rewrite neg_involutive in H. unfold fp_zero. 
+  assert (x + x = mul fp_two x). { rewrite two. rewrite fp_eq_ok. field. }
+  rewrite H0 in H. generalize (nonzero_iff fp_two x). intros H1. apply not_iff_compat in H1. destruct H1.
+  unfold fp_eq in H1. apply double_negation in H. apply H1 in H. apply Classical_Prop.not_and_or in H. destruct H.
   - destruct H. intros c. discriminate c.
-  - apply Classical_Prop.NNPP in H. unfold nat_zero in H. apply H.
+  - apply Classical_Prop.NNPP in H. unfold fp_zero in H. apply H.
 Qed.
 
-Lemma helper67: forall x y, x * x - y * y = (x + y) * (x - y).
-Proof. intros x y. rewrite (sub_add_opp x y). rewrite mul_add_distr_l. repeat rewrite mul_add_distr_r. 
-  rewrite <- add_assoc. rewrite (add_assoc (x*x) (x * neg y) (y*x)). rewrite (mul_commut y x). rewrite <- mul_add_distr_r. rewrite (add_commut (neg y) y). 
-  rewrite add_neg_zero. rewrite mul_zero. rewrite (add_commut (x*x) zero). rewrite add_zero_l. rewrite <- neg_mul_distr_r. rewrite <- sub_add_opp.
-  reflexivity.
+Lemma square_law: forall x y, x * x - y * y = (x + y) * (x - y).
+Proof. intros x y. rewrite fp_eq_ok. field. 
 Qed.
 
-Lemma helper7: forall x1 y1 x2 y2, g1_on_curve (x1, y1, false) -> g1_on_curve (x2, y2, false) -> x1 = x2 -> y1 = y2 \/ y1 = neg y2.
+Lemma symmetrical_x_axis: forall x1 y1 x2 y2, g1_on_curve (x1, y1, false) -> g1_on_curve (x2, y2, false) -> x1 = x2 -> y1 = y2 \/ y1 = neg y2.
 Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2)). intro H4.
-  unfold g1_on_curve in H1. unfold g1_on_curve in H2. rewrite <- H3 in H2. rewrite <- H2 in H1. apply helper6 in H1. rewrite helper67 in H1.
-  apply not_iff_compat in H4. rewrite H1 in H4. unfold nat_eq in H4. destruct H4. apply Classical_Prop.not_and_or in H. 
+  unfold g1_on_curve in H1. unfold g1_on_curve in H2. rewrite <- H3 in H2. rewrite <- H2 in H1. apply sub_eq_zero_means_same in H1. rewrite square_law in H1.
+  apply not_iff_compat in H4. rewrite H1 in H4. unfold fp_eq in H4. destruct H4. apply Classical_Prop.not_and_or in H. 
   - destruct H.
-    + right. apply helper6. rewrite sub_add_opp. rewrite neg_involutive. apply Classical_Prop.NNPP. apply H.
-    + left. apply helper6. apply Classical_Prop.NNPP. apply H.
+    + right. apply sub_eq_zero_means_same. rewrite sub_add_opp. rewrite neg_involutive. apply Classical_Prop.NNPP. apply H.
+    + left. apply sub_eq_zero_means_same. apply Classical_Prop.NNPP. apply H.
   - intros contra. destruct contra. reflexivity.
 Qed.
 
-About Zbits.P_mod_two_p.
-
-Lemma exp2ismul: forall x, nat_exp x (pub_u32 2) = x * x.
-Proof. intros x. unfold nat_exp. unfold unsigned. unfold intval. rewrite N_to_int2. simpl. destruct x as (a,p).
-  simpl. unfold Zbits.P_mod_two_p. compute.  
+(* Admitted because weird compilation *)
+Lemma exp2ismul: forall x, fp_exp x (pub_u32 2) = x * x.
+Proof. intros x. unfold fp_exp. unfold unsigned. unfold intval. rewrite N_to_int2. simpl. destruct x as (a,p).
+  simpl. unfold Zbits.P_mod_two_p.  
 Admitted.
 
-Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> g1_eq (g1add p q) (g1_from_fc (g1_fc_add (g1_to_fc p) (g1_to_fc q))). 
+
+
+(* The equivalence proof. If two points are on the curve, adding them together using hacspec is the same as converting to fiat-crypto, adding them and converting back *)
+Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> (p ?+? q) ?=? (g1_from_fc ((g1_to_fc p) #+# (g1_to_fc q))). 
 Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
   unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
   destruct b eqn:E.
@@ -1041,44 +887,58 @@ Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q.
     + unfold g1_on_curve in H. rewrite <- H. rewrite eq_true. split. reflexivity. reflexivity.
     + unfold g1_on_curve in H. unfold g1_on_curve in H0. rewrite H0. rewrite H. rewrite eq_true. rewrite eq_true.
       destruct (g1_eqb (f, f0, false) (f1, f2, false)) eqn:E2. 
-      * simpl. destruct (eq f0 nat_zero) eqn:E3. 
-        -- simpl. apply same_if_g1_eq in E2. unfold g1_eq in E2. destruct E2. rewrite H1. unfold nat_eq. unfold dec. destruct (g1_dec f1 f1) eqn:E6. 
+      * simpl. destruct (eq f0 fp_zero) eqn:E3. 
+        --  simpl. apply same_if_g1_eq in E2. unfold g1_eq in E2. destruct E2. rewrite H1. unfold fp_eq. unfold dec. destruct (g1_dec f1 f1) eqn:E6. 
           ++ destruct (g1_dec f2 (neg f0)).
             ** reflexivity.
-            ** rewrite <- H2 in n0. apply same_if_eq in E3. rewrite E3 in n0. destruct n0. reflexivity.
-          ++ destruct n. reflexivity.
-        -- simpl. apply same_if_g1_eq in E2. simpl in E2. destruct E2. destruct (dec (nat_eq f f1)).
-          ++ destruct (dec (nat_eq f2 (neg f0))).
-            ** rewrite <- H2 in n0. apply helper3 in n0. rewrite n0 in E3. rewrite eq_true in E3. discriminate E3.
+            ** exfalso. rewrite <- H2 in n. apply same_if_eq in E3. rewrite E3 in n. destruct n. reflexivity.
+          ++ exfalso. destruct n. reflexivity.
+        -- simpl. apply same_if_g1_eq in E2. simpl in E2. destruct E2. destruct (dec (fp_eq f f1)).
+          ++ destruct (dec (fp_eq f2 (neg f0))).
+            ** exfalso. rewrite <- H2 in f4. apply negation_eq_implies_zero in f4. rewrite f4 in E3. rewrite eq_true in E3. discriminate E3.
             ** repeat rewrite exp2ismul. split.
-              --- rewrite nat_eq_ok. rewrite H1. rewrite helper4. rewrite helper5. field. split.
-                +++ unfold nat_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
-                +++ unfold nat_eq. intros c. discriminate c.
-              --- rewrite helper4. rewrite helper5. rewrite nat_eq_ok. rewrite H1. field. split. 
-                +++ unfold nat_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
-                +++ unfold nat_eq. intros c. discriminate c.
+              --- rewrite fp_eq_ok. rewrite H1. rewrite three. rewrite two. field. split.
+                +++ unfold fp_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
+                +++ unfold fp_eq. intros c. discriminate c.
+              --- rewrite three. rewrite two. rewrite fp_eq_ok. rewrite H1. field. split. 
+                +++ unfold fp_eq. intros c. rewrite c in E3. rewrite eq_true in E3. discriminate E3.
+                +++ unfold fp_eq. intros c. discriminate c.
           ++ rewrite H1 in n. destruct n. reflexivity.
       * destruct (eq f f1) eqn:E3.
-        -- destruct (eq f0 (nat_zero - f2)) eqn:E4.
-          ++ simpl. destruct (dec (nat_eq f f1)).
-            ** destruct (dec (nat_eq f2 (neg f0))).
+        -- destruct (eq f0 (fp_zero - f2)) eqn:E4.
+          ++ simpl. destruct (dec (fp_eq f f1)).
+            ** destruct (dec (fp_eq f2 (neg f0))).
               --- reflexivity.
-              --- apply same_if_eq in E4. rewrite E4 in n0. destruct n0. unfold nat_zero. rewrite (sub_zero_r f2). rewrite neg_involutive. reflexivity.
-            ** destruct n. unfold nat_eq. apply (same_if_eq _ _ E3).
-          ++ simpl. exfalso. generalize (helper7 f f0 f1 f2). unfold g1_on_curve. apply same_if_eq in E3. intros c. apply (c H H0) in E3 as H7. destruct H7.
+              --- exfalso. apply same_if_eq in E4. rewrite E4 in n. destruct n. unfold fp_zero. rewrite (sub_zero_r f2). rewrite neg_involutive. reflexivity.
+            ** exfalso. destruct n. unfold fp_eq. apply (same_if_eq _ _ E3).
+          ++ exfalso. generalize (symmetrical_x_axis f f0 f1 f2). unfold g1_on_curve. apply same_if_eq in E3. intros c. apply (c H H0) in E3 as H7. destruct H7.
             ** rewrite E3 in E2. rewrite H1 in E2. rewrite g1_eqb_true in E2. discriminate.
-            ** rewrite H1 in E4. unfold nat_zero in E4. rewrite <- sub_zero_r in E4. rewrite eq_true in E4. discriminate E4.
-        -- simpl. destruct (dec (nat_eq f f1)).
-          ++ unfold nat_eq in n. rewrite n in E3. rewrite eq_true in E3. discriminate E3.
+            ** rewrite H1 in E4. unfold fp_zero in E4. rewrite <- sub_zero_r in E4. rewrite eq_true in E4. discriminate E4.
+        -- simpl. destruct (dec (fp_eq f f1)).
+          ++ exfalso. unfold fp_eq in f3. rewrite f3 in E3. rewrite eq_true in E3. discriminate E3.
           ++ rewrite exp2ismul. split.
-            ** rewrite nat_eq_ok. field. unfold nat_eq. intros H1. rewrite helper6 in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
-            ** rewrite nat_eq_ok. field. unfold nat_eq. intros H1. rewrite helper6 in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
+            ** rewrite fp_eq_ok. field. unfold fp_eq. intros H1. rewrite sub_eq_zero_means_same in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
+            ** rewrite fp_eq_ok. field. unfold fp_eq. intros H1. rewrite sub_eq_zero_means_same in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
 Qed.
     
 
+(* Work in progress. Ignore below. *)
 
-Lemma stuff: forall p q: g1_fc_point, g1_fc_eq (g1_fc_add p q) (g1_to_fc (g1add (g1_from_fc p) (g1_from_fc q))).
-Proof. intros p q. rewrite g1_addition_equal.
+Lemma fc_always_on_curve: forall p: g1_fc_point, g1_on_curve (g1_from_fc p).
+Proof. intros p. unfold g1_on_curve, g1_from_fc. unfold W.coordinates. destruct p. destruct x.
+- destruct p. unfold fp_eq in y. rewrite y. rewrite fp_eq_ok. field.
+- destruct u. trivial.
+Qed.
 
-About g1_fc_point.
-About sig.
+Lemma from_and_back: forall p: g1_fc_point, p = g1_to_fc (g1_from_fc p).
+Proof. intros p. unfold g1_to_fc, g1_from_fc. simpl. destruct p. simpl. destruct x.
+- destruct p. unfold fp_eqb. assert (f0 * f0 = f * f * f + repr 4).  
+  { unfold fp_eq in y. rewrite y. rewrite four. rewrite fp_eq_ok. field. }
+Admitted.
+  
+
+Lemma stuff: forall p q: g1_fc_point, (p #+# q) #=# (g1_to_fc ((g1_from_fc p) ?+? (g1_from_fc q))).
+Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (fc_always_on_curve p) (fc_always_on_curve q)). intros H. unfold g1_eq in H.
+ destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
+Admitted.
+
