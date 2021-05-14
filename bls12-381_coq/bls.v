@@ -1,3 +1,11 @@
+(*In this file, we provide a proof, that the bls12-381 specification, written in hacspec is equivalent to the Weierstrass curve specification, from the fiat-crypto project. 
+This work has been done using a compiler from hacspec to Coq, and then proofs and lemmas have been constructed to finalise the proof. 
+The bls12-381 specification can be found here: https://github.com/hacspec/hacspec/blob/master/examples/bls12-381/src/bls12-381.rs
+The fiat-crypto Weierstrass curve specification can be found here: https://github.com/mit-plv/fiat-crypto/blob/master/src/Spec/WeierstrassCurve.v
+
+The file contains all needed steps, for specifying a translation between the hacspec specification and the fiat-crypto one, as well as a the final proof, showing equivalence *)
+
+
 Require Import Lib.
 Require Import IntTypes.
 From Coq Require Import ZArith.
@@ -94,7 +102,7 @@ Proof. apply fp_inv_is_multiplicative_inverse. Qed.
 Definition fp2fromfp (n_2 : fp) : fp2 :=
 (
   n_2,
-  zero
+  fp_zero
 ).
 
 Definition fp2zero : fp2 :=
@@ -346,8 +354,12 @@ Definition g1double_a (p_142 : g1) : g1 :=
   let y3_148 := ((xovery_146) * ((x1_143) - (x3_147))) - (y1_144) in
   (x3_147, y3_148, false).
 
-(* TODO *)
-Axiom g1_eqb : g1 -> g1 -> bool.
+(* Self written definition *)
+Definition g1_eqb (x y: g1): bool := 
+  let '(x1, x2, xinf) := x in
+  let '(y1, y2, yinf) := y in
+  eq x1 y1 && eq x2 y2 && Bool.eqb xinf yinf.
+
 
 Definition g1double (p_157 : g1) : g1 :=
   let '(x1_158, y1_159, inf1_160) := p_157 in
@@ -703,12 +715,20 @@ Definition g1_eq (x y: g1) :=
     x1 = y1 /\ x2 = y2.
 
 
-(* If the boolean equality is the same, then the elements are the same 
-Axiomized because g1_eqb was not compiled *)
-Axiom same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
+(* If the boolean equality is the same, then the elements are the same *)
+Lemma same_if_g1_eq: forall x y, g1_eqb x y = true -> g1_eq x y.
+Proof. intros x y. unfold g1_eqb, g1_eq. destruct x. destruct y. destruct p. destruct p0. intros H.
+destruct b.
+- destruct (eq f f1); destruct (eq f0 f2); destruct b0; try reflexivity; try inversion H.
+- destruct (eq f f1) eqn:E; destruct (eq f0 f2) eqn:E1; destruct b0; try reflexivity; try inversion H.
+  apply same_if_eq in E. apply same_if_eq in E1. split. apply E. apply E1.
+Qed.
+
 
 (* Every element is equal itself *)
-Axiom g1_eqb_true: forall p, g1_eqb p p = true.
+Lemma g1_eqb_true: forall p, g1_eqb p p = true.
+Proof. intros p. unfold g1_eqb. destruct p. destruct p. repeat rewrite eq_true. rewrite Bool.eqb_reflx. reflexivity.
+Qed.
 
 
 Lemma fp_ring_theory: ring_theory fp_zero fp_one add mul sub neg fp_eq.
@@ -877,7 +897,7 @@ Admitted.
 
 (* The equivalence proof. If two points are on the curve, adding them together using hacspec is the same as converting to fiat-crypto, adding them and converting back *)
 Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> (p ?+? q) ?=? (g1_from_fc ((g1_to_fc p) #+# (g1_to_fc q))). 
-Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
+Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
   unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
   destruct b eqn:E.
   - destruct b0 eqn:E1.
@@ -890,7 +910,7 @@ Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q.
       * simpl. destruct (eq f0 fp_zero) eqn:E3. 
         --  simpl. apply same_if_g1_eq in E2. unfold g1_eq in E2. destruct E2. rewrite H1. unfold fp_eq. unfold dec. destruct (g1_dec f1 f1) eqn:E6. 
           ++ destruct (g1_dec f2 (neg f0)).
-            ** reflexivity.
+            ** simpl. reflexivity.
             ** exfalso. rewrite <- H2 in n. apply same_if_eq in E3. rewrite E3 in n. destruct n. reflexivity.
           ++ exfalso. destruct n. reflexivity.
         -- simpl. apply same_if_g1_eq in E2. simpl in E2. destruct E2. destruct (dec (fp_eq f f1)).
@@ -916,10 +936,11 @@ Proof. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q.
             ** rewrite H1 in E4. unfold fp_zero in E4. rewrite <- sub_zero_r in E4. rewrite eq_true in E4. discriminate E4.
         -- simpl. destruct (dec (fp_eq f f1)).
           ++ exfalso. unfold fp_eq in f3. rewrite f3 in E3. rewrite eq_true in E3. discriminate E3.
-          ++ rewrite exp2ismul. split.
-            ** rewrite fp_eq_ok. field. unfold fp_eq. intros H1. rewrite sub_eq_zero_means_same in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
-            ** rewrite fp_eq_ok. field. unfold fp_eq. intros H1. rewrite sub_eq_zero_means_same in H1. rewrite H1 in E3. rewrite eq_true in E3. discriminate E3.
+          ++ rewrite exp2ismul. split;
+            rewrite fp_eq_ok; field; unfold fp_eq; intros H1; rewrite sub_eq_zero_means_same in H1; rewrite H1 in E3; rewrite eq_true in E3; discriminate E3.
 Qed.
+
+
     
 
 (* Work in progress. Ignore below. *)
@@ -942,3 +963,39 @@ Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (
  destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
 Admitted.
 
+
+
+(* fp2 ring/field stuff*)
+
+
+
+Definition fp2one := (fp_one, fp_zero).
+
+Definition fp2eq (x y:fp2) := x = y.
+
+Lemma fp2eq_ok: forall x y, x = y <-> fp2eq x y.
+Proof. intros x y. reflexivity.
+Qed.
+
+Lemma fp2_ring_theory: ring_theory fp2zero fp2one fp2add fp2mul fp2sub fp2neg fp2eq.
+Proof. split; intros; unfold fp2eq, fp2add, fp2zero, fp2one, fp2mul, fp2sub, fp2sub, fp2neg, fp2fromfp; try destruct x; try destruct y; try destruct z; apply pair_equal_spec; split; rewrite fp_eq_ok; field.
+Qed.
+
+Add Ring fp2_ring: fp2_ring_theory.
+
+Definition fp2div x y := fp2mul x (fp2inv y).
+
+(* Works for our prime I guess, cf. https://github.com/zkcrypto/bls12_381/blob/main/src/fp2.rs#L305 *)
+Lemma helper1: forall a b, fp_eq (a * a + b * b) fp_zero -> a = fp_zero /\ b = fp_zero.
+Proof. Admitted.
+
+Lemma fp2_field_theory: field_theory fp2zero fp2one fp2add fp2mul fp2sub fp2neg fp2div fp2inv fp2eq.
+Proof. split.
+- apply fp2_ring_theory.
+- unfold fp_eq. unfold "<>". intros H. discriminate.
+- reflexivity.
+- intros p. unfold fp2eq, fp2zero, fp2mul, fp2inv, fp2one, fp2fromfp. destruct p. intros H. apply pair_equal_spec. split; rewrite fp_eq_ok; field;
+  intros H1; destruct H; apply helper1 in H1; destruct H1; rewrite H0; rewrite H; apply pair_equal_spec; split; reflexivity.
+Qed.
+
+Add Field fp_field: fp_field_theory.
