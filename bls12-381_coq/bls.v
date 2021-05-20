@@ -94,37 +94,6 @@ Definition prime := 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6
 
 Definition fp_inv a: int := repr (val prime (inv prime (mkznz prime _ (modz prime (unsigned a))))).
 
-Lemma helper4: forall a: Z, (0 <= a < prime)%Z -> a = val prime (mkznz prime _ (modz prime a)).
-Proof. intros a H. simpl. symmetry. apply (Z.mod_small). apply H.
-Qed.
-Check GZnZ.mul.
-
-Lemma helper6: modulus = prime.
-Proof. compute. Admitted.
-
-Lemma helper5: forall (a: Z) (b: znz prime), (0 <= a < prime)%Z -> repr (a * (val prime b)) = repr (val prime (GZnZ.mul prime (mkznz prime _ (modz prime a)) b)).
-Proof. intros a b H. apply eqm_samerepr. simpl. rewrite (Z.mod_small a).  unfold eqm. rewrite helper6. apply Zbits.eqmod_mod. reflexivity. apply H.
-Qed.
-
-Lemma helper7: forall a, (0 <= val prime a < prime)%Z.
-Proof. intro a. destruct a. simpl. rewrite inZnZ. apply Z.mod_pos_bound. reflexivity. 
-Qed.
-
-Require Import Blsprime.blsprime.
-
-Lemma fp_inv_is_multiplicative_inverse : forall (n : int), n <> fp_zero -> mul n (fp_inv n) = one.
-Proof. intros n H. unfold mul. unfold fp_inv. rewrite unsigned_repr_eq. generalize (FZpZ prime blsprime). intros H1. destruct H1. destruct F_R.
-  rewrite Z.mod_small.
-  - rewrite helper5. rewrite Rmul_comm. rewrite Finv_l. 
-    + reflexivity.
-    + intro c. destruct H. inversion c. apply eqm_refl2 in H0. apply eqm_samerepr in H0. rewrite (Z.mod_small) in H0. rewrite (Z.mod_small) in H0. rewrite repr_unsigned in H0. rewrite H0. reflexivity.
-      split; reflexivity.
-      generalize (unsigned_range n). intro he. rewrite helper6 in he. apply he.
-    + generalize (unsigned_range n). intro he. rewrite helper6 in he. apply he.
-  - rewrite helper6. apply helper7.
-Qed.
-
-
 Definition fp_div a b: fp := a * (fp_inv b) .
 
 
@@ -780,9 +749,37 @@ Qed.
 Add Ring fp_ring: fp_ring_theory (decidable same_if_eq).
 
 
+Lemma helper4: forall a: Z, (0 <= a < prime)%Z -> a = val prime (mkznz prime _ (modz prime a)).
+Proof. intros a H. simpl. symmetry. apply (Z.mod_small). apply H.
+Qed.
+
+(* Won't compute *)
+Lemma helper6: modulus = prime.
+Proof. compute. Admitted.
+
+Lemma helper5: forall (a: Z) (b: znz prime), (0 <= a < prime)%Z -> repr (a * (val prime b)) = repr (val prime (GZnZ.mul prime (mkznz prime _ (modz prime a)) b)).
+Proof. intros a b H. apply eqm_samerepr. simpl. rewrite (Z.mod_small a).  unfold eqm. rewrite helper6. apply Zbits.eqmod_mod. reflexivity. apply H.
+Qed.
+
+Lemma helper7: forall a, (0 <= val prime a < prime)%Z.
+Proof. intro a. destruct a. simpl. rewrite inZnZ. apply Z.mod_pos_bound. reflexivity. 
+Qed.
+
+Require Import Blsprime.blsprime.
+
+Lemma fp_inv_is_multiplicative_inverse : forall (n : int), n <> fp_zero -> mul n (fp_inv n) = one.
+Proof. intros n H. unfold mul. unfold fp_inv. rewrite unsigned_repr_eq. generalize (FZpZ prime blsprime). intros H1. destruct H1. destruct F_R.
+  rewrite Z.mod_small.
+  - rewrite helper5. rewrite Rmul_comm. rewrite Finv_l. 
+    + reflexivity.
+    + intro c. destruct H. inversion c. apply eqm_refl2 in H0. apply eqm_samerepr in H0. rewrite (Z.mod_small) in H0. rewrite (Z.mod_small) in H0. rewrite repr_unsigned in H0. rewrite H0. reflexivity.
+      split; reflexivity.
+      generalize (unsigned_range n). intro he. rewrite helper6 in he. apply he.
+    + generalize (unsigned_range n). intro he. rewrite helper6 in he. apply he.
+  - rewrite helper6. apply helper7.
+Qed.
+
 Require Import Coq.setoid_ring.Field.
-
-
 
 Lemma fp_field_theory: field_theory fp_zero fp_one add mul sub neg fp_div fp_inv fp_eq.
 Proof. split.
@@ -920,7 +917,7 @@ Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2))
   - intros contra. destruct contra. reflexivity.
 Qed.
 
-(* Admitted because weird compilation (wprdsize is weird) *)
+(* Admitted because weird compilation (wordsize is weird) *)
 Lemma exp2ismul: forall x, fp_exp x (pub_u32 2) = x * x.
 Proof. intros x. unfold fp_exp. unfold Z.pow. unfold unsigned. unfold intval. rewrite N_to_int2. simpl. destruct x as (a,p).
   simpl. unfold Zbits.P_mod_two_p. simpl.  
