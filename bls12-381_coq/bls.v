@@ -470,24 +470,33 @@ Definition g2double_a (p_186 : g2) : g2 :=
   (x3_195, y3_198, false).
 
 (* TODO *)
-Axiom g2_eqb : g2 -> g2 -> bool.
-Axiom fp2_eqb : fp2 -> fp2 -> bool.
+(* Self written definition *)
+Definition fp2_eqb (x y: fp2) := 
+  let (x1, x2) := x in 
+  let (y1, y2) := y in
+  fp_eqb x1 y1 && fp_eqb x2 y2.
+Definition g2_eqb (x y: g2): bool := 
+  let '(x1, x2, xinf) := x in
+  let '(y1, y2, yinf) := y in
+  fp2_eqb x1 y1 && fp2_eqb x2 y2 && Bool.eqb xinf yinf.
+
+Definition g2double (p_207 : g2) : g2 :=
+  let '(x1_208, y1_209, inf1_210) := p_207 in
+  if (negb (fp2_eqb (y1_209)  (fp2zero)) && (negb (inf1_210))) then (
+    g2double_a (p_207)) else ((fp2zero, fp2zero, true)).
 
 Definition g2add (p_199 : g2) (q_200 : g2) : g2 :=
   let '(x1_201, y1_202, inf1_203) := p_199 in
   let '(x2_204, y2_205, inf2_206) := q_200 in
   if (inf1_203) then (q_200) else (
     if (inf2_206) then (p_199) else (
-      if (g2_eqb (p_199) (q_200)) then (g2double_a (p_199)) else (
+      if (g2_eqb (p_199) (q_200)) then (g2double (p_199)) else (
         if (
           negb (
             (fp2_eqb (x1_201) (x2_204)) && (fp2_eqb (y1_202) (fp2neg (y2_205))))) then (
           g2add_a (p_199) (q_200)) else ((fp2zero, fp2zero, true))))).
 
-Definition g2double (p_207 : g2) : g2 :=
-  let '(x1_208, y1_209, inf1_210) := p_207 in
-  if ((fp2_eqb (y1_209)  (fp2zero)) && (negb (inf1_210))) then (
-    g2double_a (p_207)) else ((fp2zero, fp2zero, true)).
+
 
 Definition g2mul (m_211 : scalar) (p_212 : g2) : g2 :=
   let n_213 := usize 255 in
@@ -763,7 +772,9 @@ Proof. intros pos. destruct pos.
 - intros H. left. reflexivity.
 Qed.
 
-Lemma fp_char_ge:  @char_ge fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul (BinNat.N.succ_pos BinNat.N.two).
+About Ring.char_ge.
+
+Lemma fp_char_ge:  @Ring.char_ge fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul (BinNat.N.succ_pos BinNat.N.two).
 Proof. 
   unfold char_ge. unfold Hierarchy.char_ge. intros pos. simpl. intros H. unfold fp_eq. apply pos_le_three in H. destruct H;
   rewrite H; simpl; intro c; discriminate c.
@@ -823,12 +834,10 @@ Proof. split.
   - intros H. rewrite H. rewrite fp_eq_ok. field. 
 Qed.
 
-Require Import Algebra.IntegralDomain.
-
 (* Integral domain to help with som algebraic properties *)
 Definition fp_integral_domain := @Field.integral_domain fp fp_eq fp_zero fp_one fp_neg fp_add fp_mul fp_sub fp_inv fp_div fp_fc_field g1_dec.
 
-Definition nonzero_iff := @IntegralDomain.nonzero_product_iff_nonzero_factors fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul fp_integral_domain.
+Definition nonzero_iff := @IntegralDomain.IntegralDomain.nonzero_product_iff_nonzero_factors fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul fp_integral_domain.
 
 Lemma double_negation: forall p: Prop, p -> ~~p.
 Proof. intros P H H1. contradiction. Qed. 
@@ -837,7 +846,7 @@ Lemma fp_neg_invo: forall x, fp_neg (fp_neg x) = x.
 Proof. intros x.  rewrite fp_eq_ok. field. Qed. 
 
 Lemma negation_eq_implies_zero: forall x, fp_eq x (fp_neg x) -> x = fp_zero.
-Proof. intros x H. unfold fp_eq in H. generalize fp_field_theory. intro fi. destruct fi. destruct F_R.
+Proof. intros x H. unfold fp_eq in H. generalize fp_field_theory. intros [[]].
   rewrite <- (Radd_0_l (fp_neg x)) in H. rewrite Radd_comm in H.
   rewrite <- algebra_helper_1 in H.
   rewrite Rsub_def in H.
@@ -857,11 +866,11 @@ Lemma symmetrical_x_axis: forall x1 y1 x2 y2, g1_on_curve (x1, y1, false) -> g1_
 Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2)). intro H4.
   unfold g1_on_curve in H1. unfold g1_on_curve in H2. rewrite <- H3 in H2. rewrite <- H2 in H1. apply sub_eq_zero_means_same in H1. rewrite square_law in H1.
   apply not_iff_compat in H4. rewrite H1 in H4. unfold fp_eq in H4. destruct H4. 
-  (generalize fp_field_theory). intros fi. destruct fi. destruct F_R. apply Classical_Prop.not_and_or in H. 
+  (generalize fp_field_theory). intros [[]]. apply Classical_Prop.not_and_or in H. 
   - destruct H.
     + right. apply sub_eq_zero_means_same. rewrite Rsub_def. rewrite fp_neg_invo. apply Classical_Prop.NNPP. apply H.
     + left. apply sub_eq_zero_means_same. apply Classical_Prop.NNPP. apply H.
-  - intros contra. destruct contra. reflexivity.
+  - congruence.
 Qed.
 
 (* Admitted because weird compilation (wordsize is weird) *)
@@ -874,7 +883,7 @@ Proof. reflexivity. Qed.
 Lemma g1_addition_equal: forall p q: g1, g1_on_curve p -> g1_on_curve q -> (p ?+? q) ?=? (g1_from_fc ((g1_to_fc p) #+# (g1_to_fc q))). 
 Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
   unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
-  (generalize fp_field_theory). intros fi. destruct fi. destruct F_R.
+  (generalize fp_field_theory). intros [[]].
   destruct b eqn:E.
   - destruct b0 eqn:E1.
     + reflexivity.
@@ -906,8 +915,8 @@ Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. des
             ** destruct (dec (fp_eq f2 (fp_neg f0))).
               --- reflexivity.
               --- exfalso. apply fp_same_if_eq in E4. rewrite E4 in n. destruct n. rewrite Rsub_def. rewrite Radd_0_l. rewrite fp_neg_invo. reflexivity.
-            ** exfalso. destruct n. unfold fp_eq. apply (fp_same_if_eq _ _ E3).
-          ++ exfalso. generalize (symmetrical_x_axis f f0 f1 f2). unfold g1_on_curve. apply fp_same_if_eq in E3. intros c. apply (c H H0) in E3 as H7. destruct H7.
+            ** exfalso. destruct n. unfold fp_eq. apply (fp_same_if_eq _ _). apply E3.
+          ++ exfalso. generalize (symmetrical_x_axis f f0 f1 f2 H H0). apply fp_same_if_eq in E3. intros c. apply c in E3 as H7. destruct H7.
             ** rewrite E3 in E2. rewrite H1 in E2. rewrite g1_eqb_true in E2. discriminate.
             ** rewrite H1 in E4. rewrite Rsub_def in E4. rewrite Radd_0_l in E4. rewrite fp_eq_true in E4. discriminate E4.
         -- simpl. destruct (dec (fp_eq f f1)).
@@ -916,8 +925,24 @@ Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. des
             rewrite fp_eq_ok; field; unfold fp_eq; intros H1; rewrite sub_eq_zero_means_same in H1; rewrite H1 in E3; rewrite fp_eq_true in E3; discriminate E3.
 Qed.
 
+(*
+Lemma g1_addition_equal2: forall p q: g1, g1_on_curve p -> g1_on_curve q -> (p ?+? q) ?=? (g1_from_fc ((g1_to_fc p) #+# (g1_to_fc q))). 
+Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
+  unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
+  (generalize fp_field_theory). intros [[]]. unfold g1_on_curve in H. unfold g1_on_curve in H0.
+  assert (fp_zero - f2 = fp_neg f2). {apply fp_eq_ok. field. }
+  destruct (g1_eqb (f, f0, b) (f1, f2, b0)) eqn:E1; destruct (fp_eqb f0 fp_zero) eqn:E2; destruct b; destruct b0; try reflexivity; destruct (g1_dec f2 (fp_neg f0)); simpl.
+  all: try rewrite H0; try rewrite H; repeat rewrite fp_eq_true; try split; try reflexivity. 
+  all: destruct (dec (fp_eq f f1)); try destruct (dec (fp_eq f2 (fp_neg f0))); try reflexivity; try apply same_if_g1_eq in E1 as L1; try simpl in L1; try destruct L1; try contradiction.
+  apply fp_same_if_eq in E2. rewrite E2 in n. assert (fp_neg fp_zero = fp_zero). {apply fp_eq_ok. field. } rewrite H4 in n. rewrite <- E2 in n. symmetry in H3. contradiction.
+  rewrite <- H3 in f3. apply negation_eq_implies_zero in f3. rewrite f3 in E2. rewrite fp_eq_true in E2. discriminate. 
+  
+  all: try rewrite H1; simpl; destruct (fp_eqb f f1) eqn:E3; destruct (fp_eqb f0 (fp_neg f2)) eqn:E4; simpl; try apply fp_same_if_eq in E3; try apply fp_same_if_eq in E4; try reflexivity; try contradiction.
+  all: try rewrite H1; try rewrite H2; try split; repeat rewrite exp2ismul; unfold fp_three, fp_two; try apply fp_eq_ok; try field; try split. try congruence; try intros c1; try rewrite c1 in E2; try apply fp_eq_true in E2; try discriminate.
+  apply same_if_g1_eq in E1. simpl in E1. destruct E1. contradiction. try split; try rewrite fp_eq_ok; repeat rewrite exp2ismul; unfold fp_three; unfold fp_two; try field. field.
+  *)  
+  
 
-    
 
 (* Work in progress. Ignore below. *)
 
@@ -976,3 +1001,218 @@ Qed.
 
 Add Field fp2_field: fp2_field_theory.
 
+Infix "-" := fp2sub.
+Infix "+" := fp2add.
+Infix "*" := fp2mul.
+
+Definition fp2two := fp2one + fp2one.
+Definition fp2three := fp2one + fp2two.
+
+
+Lemma fp2_same_if_eq: forall x y, fp2_eqb x y = true <-> x = y.
+Proof. intros x y. split.
+  - unfold fp2_eqb. destruct x. destruct y. intros H. apply Bool.andb_true_iff in H. destruct H. apply fp_same_if_eq in H. apply fp_same_if_eq in H0. rewrite H. rewrite H0. reflexivity.
+  - intros H. rewrite H. unfold fp2_eqb. destruct y. repeat rewrite fp_eq_true. reflexivity. 
+Qed.
+
+Definition g2_eq (x y: g2) := 
+  let '(x1, x2, xinf) := x in
+  let '(y1, y2, yinf) := y in
+  if xinf then yinf = true else
+    x1 = y1 /\ x2 = y2.
+
+(* Fiat-crypto field from standard library field *)
+Instance fp2_fc_field : @field fp2 fp2eq fp2zero fp2one fp2neg fp2add fp2sub fp2mul fp2inv fp2div.
+Proof.
+  repeat split; try apply (Fdiv_def fp_field_theory); try (intros ; field); try apply (_ (fp_field_theory)); auto.
+  - symmetry; apply (F_1_neq_0 (fp2_field_theory)).
+Qed.
+
+
+Lemma g2_dec: DecidableRel fp2eq.
+Proof. unfold Decidable. unfold fp2eq. intros x y. generalize (fp2_same_if_eq x y). intros H. destruct (fp2_eqb x y).
+  - left. apply H. reflexivity. 
+  - right. apply not_iff_compat in H. apply H. congruence.
+Qed.
+
+About Ring.char_ge.
+
+Lemma fp2_char_ge:  @Ring.char_ge fp2 fp2eq fp2zero fp2one fp2neg fp2add fp2sub fp2mul (BinNat.N.succ_pos BinNat.N.two).
+Proof. 
+  unfold char_ge. unfold Hierarchy.char_ge. intros pos. simpl. intros H. unfold fp_eq. apply pos_le_three in H. destruct H;
+  rewrite H; simpl; intro c; discriminate c.
+Qed.
+
+Definition g2_b: fp2 := (fp_four, fp_four).
+
+(* Representation af a Fiat-crypto G1 point *)
+Definition g2_fc_point := @W.point fp2 fp2eq fp2add fp2mul fp2zero g2_b. 
+(* Fiat-Crypto Equivalence, Addition and Zero element *)
+Definition g2_fc_eq := @W.eq fp2 fp2eq fp2add fp2mul fp2zero g2_b.       
+Definition g2_fc_add (p1 p2 :g2_fc_point ) :g2_fc_point := @W.add fp2 fp2eq fp2zero fp2one fp2neg fp2add fp2sub fp2mul fp2inv fp2div fp2_fc_field g2_dec fp2_char_ge fp2zero g2_b p1 p2.
+Definition g2_fc_zero := @W.zero fp2 fp2eq fp2add fp2mul fp2zero g2_b.
+
+(* ?x? is x performed by hacspec. #x# is x performed by Fiat-Crypto *)
+Infix "?+?" := g2add (at level 81).
+Infix "?=?" := g2_eq (at level 100).
+Infix "#+#" := g2_fc_add (at level 81).
+Infix "#=#" := g2_fc_eq (at level 100).
+
+(* Checking the Fiat-Crypto functions actually work*)
+Example g2_add_zero_is_zero_in_fc: (g2_fc_zero #+# g2_fc_zero) #=# g2_fc_zero.
+Proof. reflexivity.
+Qed.
+
+(* Translating Fiat-Crypto Point Representations to our G1 points (x, y, isPointAtInfinity) *)
+Definition g2_from_fc (p: g2_fc_point): g2 := 
+  match W.coordinates p with
+  | inr tt => (fp2zero, fp2zero, true)
+  | inl (pair x y) => (x, y, false)
+  end.
+
+
+(* Translating our points to Fiat-Crypto Points *)
+Program Definition g2_to_fc (p: g2): g2_fc_point :=
+    match p return fp2*fp2+unit with
+    | (_, _, true) => inr tt
+    | (x, y, false) => if fp2_eqb (y*y) (x*x*x + g2_b) 
+      then inl (x, y) 
+      else inr tt
+    end.
+    Opaque fp2mul.
+    Next Obligation.
+    Crypto.Util.Tactics.BreakMatch.break_match. 
+    - trivial. 
+    - apply fp2_same_if_eq in Heqb. rewrite Heqb. field. 
+    - trivial.
+    Qed.
+
+Lemma fp2_eq_ok: forall x y, x = y <-> fp2eq x y.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma fp2_algebra_helper_1: forall x y z, x - y = z <-> x = y + z.
+Proof. intros x y z. split.
+  - intros H. rewrite <- H. rewrite fp2_eq_ok. field. 
+  - intros H. rewrite H. rewrite fp2_eq_ok. field.
+Qed.
+
+Lemma fp2_sub_eq_zero_means_same: forall x y, x - y = fp2zero <-> x = y.
+Proof. split. 
+  - intros H. apply fp2_algebra_helper_1 in H. rewrite H. rewrite fp2_eq_ok. field.
+  - intros H. rewrite H. rewrite fp2_eq_ok. field. 
+Qed.
+
+(* Integral domain to help with som algebraic properties *)
+Definition fp2_integral_domain := @Field.integral_domain fp2 fp2eq fp2zero fp2one fp2neg fp2add fp2mul fp2sub fp2inv fp2div fp2_fc_field g2_dec.
+
+Definition fp2_nonzero_iff := @IntegralDomain.IntegralDomain.nonzero_product_iff_nonzero_factors fp2 fp2eq fp2zero fp2one fp2neg fp2add fp2sub fp2mul fp2_integral_domain.
+
+Lemma fp2_neg_invo: forall x, fp2neg (fp2neg x) = x. 
+Proof. intros x.  rewrite fp2_eq_ok. field. 
+Qed. 
+
+Lemma fp2_negation_eq_implies_zero: forall x, fp2eq x (fp2neg x) -> x = fp2zero.
+Proof. intros x H. unfold fp2eq in H. generalize fp2_field_theory. intros [[]].
+  rewrite <- (Radd_0_l (fp2neg x)) in H. rewrite Radd_comm in H.
+  rewrite <- fp2_algebra_helper_1 in H.
+  rewrite Rsub_def in H.
+  rewrite <- fp2_neg_invo.
+  assert (x + x = fp2two * x). {  rewrite fp2_eq_ok. unfold fp2two. field. }
+  rewrite fp2_neg_invo in H. rewrite H0 in H. generalize (fp2_nonzero_iff fp2two x). intros H1. apply not_iff_compat in H1. destruct H1.
+  apply double_negation in H. apply H1 in H. apply Classical_Prop.not_and_or in H. destruct H.
+  - destruct H. intros c. discriminate c.
+  - apply Classical_Prop.NNPP in H. rewrite H. rewrite fp2_neg_invo. reflexivity.
+Qed.
+
+Lemma fp2_square_law: forall x y, x * x - y * y = (x + y) * (x - y).
+Proof. intros x y. rewrite fp2_eq_ok. field. 
+Qed.
+
+(* Checking if a point is actually on the curve - since FC points are only defined as points on the curve, and our points are everyting from (fp, fp), this is needed *)
+Definition g2_on_curve (p:g2) := let '(x, y, inf) := p in if inf then True else y*y=x*x*x + g2_b.
+
+Lemma fp2_symmetrical_x_axis: forall x1 y1 x2 y2, g2_on_curve (x1, y1, false) -> g2_on_curve (x2, y2, false) -> x1 = x2 -> y1 = y2 \/ y1 = fp2neg y2.
+Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (fp2_nonzero_iff (y1 + y2) (y1 - y2)). intro H4.
+  unfold g2_on_curve in H1. unfold g2_on_curve in H2. rewrite <- H3 in H2. rewrite <- H2 in H1. apply fp2_sub_eq_zero_means_same in H1. rewrite fp2_square_law in H1.
+  apply not_iff_compat in H4. rewrite H1 in H4. unfold fp2eq in H4. destruct H4. 
+  (generalize fp2_field_theory). intros [[]]. apply Classical_Prop.not_and_or in H. 
+  - destruct H.
+    + right. apply fp2_sub_eq_zero_means_same. rewrite Rsub_def. rewrite fp2_neg_invo. apply Classical_Prop.NNPP. apply H.
+    + left. apply fp2_sub_eq_zero_means_same. apply Classical_Prop.NNPP. apply H.
+  - congruence.
+Qed.
+
+
+Lemma fp2_eq_true: forall x, fp2_eqb x x = true.
+Proof. intros x. unfold fp2_eqb. destruct x. repeat rewrite fp_eq_true. reflexivity.
+Qed. 
+
+Lemma same_if_g2_eq: forall x y, g2_eqb x y = true -> g2_eq x y.
+Proof. intros x y. unfold g2_eqb, g2_eq. destruct x. destruct y. destruct p. destruct p0. intros H.
+destruct b.
+- destruct (fp2_eqb f f1); destruct (fp2_eqb f0 f2); destruct b0; try reflexivity; try inversion H.
+- destruct (fp2_eqb f f1) eqn:E; destruct (fp2_eqb f0 f2) eqn:E1; destruct b0; try reflexivity; try inversion H.
+  apply fp2_same_if_eq in E. apply fp2_same_if_eq in E1. split. apply E. apply E1.
+Qed.
+
+Lemma fp2from_two: fp2fromfp fp_two = fp2two.
+Proof. reflexivity. 
+Qed.
+
+Lemma fp2from_three: fp2fromfp fp_three = fp2three.
+Proof. reflexivity. 
+Qed.
+
+Lemma g2_eqb_true: forall x, g2_eqb x x = true.
+Proof.
+  intros [[]]. unfold g2_eqb. repeat rewrite fp2_eq_true. rewrite Bool.eqb_reflx. reflexivity.
+Qed.
+
+
+(* The equivalence proof. If two points are on the curve, adding them together using hacspec is the same as converting to fiat-crypto, adding them and converting back *)
+Lemma g2_addition_equal: forall p q: g2, g2_on_curve p -> g2_on_curve q -> (p ?+? q) ?=? (g2_from_fc ((g2_to_fc p) #+# (g2_to_fc q))). 
+Proof. Opaque g2_eqb. Opaque fp2add. intros p q H H0. unfold g2add. repeat destruct p. destruct q. destruct p. 
+  unfold g2_from_fc, g2_to_fc, g2_fc_add. unfold g2_eq. simpl. repeat rewrite fp2from_two. repeat rewrite fp2from_three.
+  (generalize fp2_field_theory). intros [[]].
+  destruct b eqn:E.
+  - destruct b0 eqn:E1.
+    + reflexivity.
+    + unfold g2_on_curve in H0. rewrite <- H0. rewrite fp2_eq_true. split; reflexivity. 
+  - destruct b0 eqn:E1.
+    + unfold g2_on_curve in H. rewrite <- H. rewrite fp2_eq_true. split; reflexivity.
+    + unfold g2_on_curve in H. unfold g2_on_curve in H0. rewrite H0. rewrite H. repeat rewrite fp2_eq_true.       
+    destruct (g2_eqb (f, f0, false) (f1, f2, false)) eqn:E2. 
+      * simpl. destruct (fp2_eqb f0 fp2zero) eqn:E3. 
+        --  simpl. apply same_if_g2_eq in E2. unfold g2_eq in E2. destruct E2. rewrite H1. unfold fp2eq. unfold dec. destruct (g2_dec f1 f1) eqn:E6. 
+          ++ destruct (g2_dec f2 (fp2neg f0)).
+            ** reflexivity.
+            ** exfalso. rewrite <- H2 in n. apply fp2_same_if_eq in E3. rewrite E3 in n. destruct n. reflexivity.
+          ++ exfalso. destruct n. reflexivity.
+        -- simpl. apply same_if_g2_eq in E2. simpl in E2. destruct E2. destruct (dec (fp2eq f f1)).
+          ++ destruct (dec (fp2eq f2 (fp2neg f0))).
+            ** exfalso. rewrite <- H2 in f4. apply fp2_negation_eq_implies_zero in f4. rewrite f4 in E3. rewrite fp2_eq_true in E3. discriminate E3.
+            ** split.
+              --- rewrite fp2_eq_ok. rewrite H1. unfold fp2three. unfold fp2two. field. split.
+                +++ unfold fp2eq. intros c. rewrite c in E3. rewrite fp2_eq_true in E3. discriminate E3.
+                +++ unfold fp2eq. intros c. discriminate c.
+              --- unfold fp2three. unfold fp2two. rewrite fp2_eq_ok. rewrite H1. field. split. 
+                +++ unfold fp2eq. intros c. rewrite c in E3. rewrite fp2_eq_true in E3. discriminate E3.
+                +++ unfold fp2eq. intros c. discriminate c.
+          ++ rewrite H1 in n. destruct n. reflexivity.
+      * destruct (fp2_eqb f f1) eqn:E3.
+        -- destruct (fp2_eqb f0 (fp2neg f2)) eqn:E4.
+          ++ simpl. destruct (dec (fp2eq f f1)).
+            ** destruct (dec (fp2eq f2 (fp2neg f0))).
+              --- reflexivity.
+              --- exfalso. apply fp2_same_if_eq in E4. rewrite E4 in n. destruct n. field.
+            ** exfalso. destruct n. unfold fp2eq. apply (fp2_same_if_eq _ _). apply E3.
+          ++ exfalso. generalize (fp2_symmetrical_x_axis f f0 f1 f2 H H0). apply fp2_same_if_eq in E3. intros c. apply c in E3 as H7. destruct H7.
+            ** rewrite E3 in E2. rewrite H1 in E2. rewrite g2_eqb_true in E2. discriminate.
+            ** rewrite H1 in E4. rewrite fp2_eq_true in E4. discriminate E4.
+        -- simpl. destruct (dec (fp2eq f f1)).
+          ++ exfalso. unfold fp2eq in f3. rewrite f3 in E3. rewrite fp2_eq_true in E3. discriminate E3.
+          ++ split;
+            rewrite fp2_eq_ok; field; unfold fp2eq; intros H1; rewrite fp2_sub_eq_zero_means_same in H1; rewrite H1 in E3; rewrite fp2_eq_true in E3; discriminate E3.
+Qed.
