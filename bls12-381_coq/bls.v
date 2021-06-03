@@ -6,12 +6,12 @@ The fiat-crypto Weierstrass curve specification can be found here: https://githu
 The file contains all needed steps, for specifying a translation between the hacspec specification and the fiat-crypto one, as well as a the final proof, showing equivalence *)
 
 
-Require Import bls12_381.Lib.
-Require Import bls12_381.IntTypes.
+Require Import bls12_381.Lib bls12_381.MachineIntegers.
 From Coq Require Import ZArith.
-Require Import List. Import ListNotations.
-Open Scope hacspec_scope.
+Import List.ListNotations.
+Open Scope Z_scope.
 Open Scope bool_scope.
+Open Scope hacspec_scope.
 From Coqprime Require Import GZnZ.
 
 Notation "a >?? b" := (Nat.ltb b a) (at level 79).
@@ -30,35 +30,22 @@ Definition g2 : Type := (fp2 * fp2 * bool).
 Definition fp6 : Type := (fp2 * fp2 * fp2).
 Definition fp12 : Type := (fp6 * fp6).
 
-Definition fp_canvas := lseq (pub_uint8) (48).
+Definition fp_canvas := nseq (int8) ((usize 48)).
 
 
-Definition serialized_fp := lseq (uint8) (usize 48).
+Definition serialized_fp := nseq (uint8) (usize 48).
 
-Definition array_fp := lseq (uint64) (usize 6).
+Definition array_fp := nseq (uint64) (usize 6).
 
-Definition scalar_canvas := lseq (pub_uint8) (32).
-
-Module Wordsize_256.
-  Definition wordsize : nat := 256.
-  Remark wordsize_not_zero: wordsize <> 0%nat.
-  Proof. unfold wordsize; congruence. Qed.
-  (* Proof. unfold wordsize; congruence. Qed. *)
-End Wordsize_256.
-Strategy opaque [Wordsize_256.wordsize].
-
-Module nat_mod_256 := Integers.Make(Wordsize_256).
-(* Import nat_mod_256. *)
+Definition scalar_canvas := nseq (int8) ((usize 32)).
 
 Definition scalar :=
-  nat_mod_256.int.
-
-(* TODO *)
+  nat_mod 0x8000000000000000000000000000000000000000000000000000000000000000.
+  
 Axiom nat_bit : N -> scalar -> uint_size -> bool.
 Axiom most_significant_bit : scalar -> uint_size -> uint_size.
 Axiom N_to_int : N -> fp. 
 Coercion N_to_int : N >-> fp.
-Coercion Z.of_N : N >-> Z.
 
 (* TODO: write a coq-friendly version of this (coq can't find decreasing fix of the body) *)
 (* Fixpoint most_significant_bit (m_0 : scalar) (n_1 : uint_size) : uint_size :=
@@ -70,6 +57,7 @@ Coercion Z.of_N : N >-> Z.
           m_0) (n_1)))) then (
     most_significant_bit (m_0) ((n_1) - (usize 1))) else (n_1). *)
 
+Check add.
 
 Definition fp_add := add prime.
 Definition fp_sub := sub prime.
@@ -328,8 +316,7 @@ Definition g1add_a (p_131 : g1) (q_132 : g1) : g1 :=
   let x3_140 :=
     (
       (
-        fp_exp (
-          xovery_139) (pub_u32 2)) - (x1_133)) - (x2_135)
+        fp_exp (xovery_139) (2)) - (x1_133)) - (x2_135)
   in
   let y3_141 := ((xovery_139) * ((x1_133) - (x3_140))) - (y1_134) in
   (x3_140, y3_141, false).
@@ -338,7 +325,7 @@ Definition g1double_a (p_142 : g1) : g1 :=
   let '(x1_143, y1_144, _) := p_142 in
   let x12_145 :=
     fp_exp (
-      x1_143) (pub_u32 2)
+      x1_143) (2)
   in
   let xovery_146 :=
     ((fp_three) * (x12_145)) * (
@@ -346,7 +333,7 @@ Definition g1double_a (p_142 : g1) : g1 :=
   let x3_147 :=
     (
       fp_exp (
-        xovery_146) (pub_u32 2)) - (
+        xovery_146) (2)) - (
       (
         fp_two  * (
         x1_143)))
@@ -562,7 +549,7 @@ Definition line_add_p (r_237 : g2) (q_238 : g2) (p_239 : g1) : fp12 :=
   fp12neg (fp12sub (fp12sub (y_249) (fp12mul (a_246) (x_248))) (b_247)).
 
 (* TODO *)
-Axiom array_to_le_bytes : forall {l}, lseq N l  -> fp.
+Axiom array_to_le_bytes : forall {A l}, nseq A l  -> fp.
 
 Definition frobenius (f_250 : fp12) : fp12 :=
   let '((g0_251, g1_252, g2_253), (h0_254, h1_255, h2_256)) := f_250 in
@@ -573,30 +560,30 @@ Definition frobenius (f_250 : fp12) : fp12 :=
   let t5_261 := fp2conjugate (g2_253) in
   let t6_262 := fp2conjugate (h2_256) in
   let c1_263 :=
-    array_from_list (
+    array_from_list _ (
       let l :=
         [
-          secret (pub_u64 10162220747404304312);
-          secret (pub_u64 17761815663483519293);
-          secret (pub_u64 8873291758750579140);
-          secret (pub_u64 1141103941765652303);
-          secret (pub_u64 13993175198059990303);
-          secret (pub_u64 1802798568193066599)
+           (10162220747404304312);
+           (17761815663483519293);
+           (8873291758750579140);
+           (1141103941765652303);
+           (13993175198059990303);
+           (1802798568193066599)
         ]
       in l)
   in
   let c1_264 := array_to_le_bytes (c1_263) in
   let c1_265 := c1_264 in
   let c2_266 :=
-    array_from_list (
+    array_from_list _ (
       let l :=
         [
-          secret (pub_u64 3240210268673559283);
-          secret (pub_u64 2895069921743240898);
-          secret (pub_u64 17009126888523054175);
-          secret (pub_u64 6098234018649060207);
-          secret (pub_u64 9865672654120263608);
-          secret (pub_u64 71000049454473266)
+           (3240210268673559283);
+           (2895069921743240898);
+           (17009126888523054175);
+           (6098234018649060207);
+           (9865672654120263608);
+           (71000049454473266)
         ]
       in l)
   in
@@ -615,7 +602,6 @@ Definition frobenius (f_250 : fp12) : fp12 :=
   let t6_278 := fp2mul (t6_262) (gamma15_273) in
   ((t1_257, t3_275, t5_277), (t2_274, t4_276, t6_278)).
 
-Import nat_mod_256.
 Infix "/" := divs.
 
 Definition final_exponentiation (f_279 : fp12) : fp12 :=
@@ -625,17 +611,14 @@ Definition final_exponentiation (f_279 : fp12) : fp12 :=
   let fp8_283 := frobenius (frobenius (fp6_1_282)) in
   let f_284 := fp12mul (fp8_283) (fp6_1_282) in
   let u_285 :=
-    repr (
-      pub_u128 15132376222941642752)
+    nat_mod_from_literal (
+      0x8000000000000000000000000000000000000000000000000000000000000000) (
+      repr 15132376222941642752)
   in
   let t0_286 := fp12mul (f_284) (f_284) in
   let t1_287 := fp12exp (t0_286) (u_285) in
   let t1_288 := fp12conjugate (t1_287) in
-  let t2_289 :=
-    fp12exp (t1_288) (
-      (u_285) / (
-        (repr 2)))
-  in
+  let t2_289 := fp12exp (t1_288) ((u_285) /% (nat_mod_two )) in
   let t2_290 := fp12conjugate (t2_289) in
   let t3_291 := fp12conjugate (f_284) in
   let t1_292 := fp12mul (t3_291) (t1_288) in
@@ -662,24 +645,19 @@ Definition final_exponentiation (f_279 : fp12) : fp12 :=
 
 Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
   let t_314 :=
-    repr (
-      pub_u128 15132376222941642752)
+    nat_mod_from_literal (
+      0x8000000000000000000000000000000000000000000000000000000000000000) (
+      repr 15132376222941642752)
   in
   let r_315 := q_313 in
-  let f_316 :=
-    fp12fromfp6 (
-      fp6fromfp2 (
-        fp2fromfp (
-          fp_one)))
-  in
+  let f_316 := fp12fromfp6 (fp6fromfp2 (fp2fromfp (@nat_mod_one 0x8000000000000000000000000000000000000000000000000000000000000000 ))) in
   let '(r_315, f_316) :=
     foldi (usize 1) (usize 64) (fun i_317 '(r_315, f_316) =>
       let lrr_318 := line_double_p (r_315) (p_312) in
       let r_315 := g2double (r_315) in
       let f_316 := fp12mul (fp12mul (f_316) (f_316)) (lrr_318) in
-      let (r_315, f_316) :=
-        if nat_bit (256) (
-          t_314) (N.sub (N.sub (usize 64) (i_317)) (usize 1)) then (
+      let '(r_315, f_316) :=
+        if nat_mod_bit (t_314) (Z.sub (Z.sub (usize 64) (i_317)) (usize 1)) then (
           let lrq_319 := line_add_p (r_315) (q_313) (p_312) in
           let r_315 := g2add (r_315) (q_313) in
           let f_316 := fp12mul (f_316) (lrq_319) in
@@ -693,7 +671,6 @@ Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
   final_exponentiation (fp12conjugate (f_316)).
 
 (* ########### PROOF SECTION ########### *)
-
 
 Require Import Crypto.Spec.WeierstrassCurve.
 Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
@@ -771,6 +748,7 @@ Proof. intros pos. destruct pos.
 - intros H. left. reflexivity.
 Qed.
 
+About Ring.char_ge.
 
 Lemma fp_char_ge:  @Ring.char_ge fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul (BinNat.N.succ_pos BinNat.N.two).
 Proof. 
@@ -872,7 +850,7 @@ Proof. intros x1 y1 x2 y2 H1 H2 H3. generalize (nonzero_iff (y1 + y2) (y1 - y2))
 Qed.
 
 (* Admitted because weird compilation (wordsize is weird) *)
-Lemma exp2ismul: forall x, fp_exp x (pub_u32 2) = x * x.
+Lemma exp2ismul: forall x, fp_exp x (2) = x * x.
 Proof. reflexivity. Qed. 
 
 
@@ -1177,3 +1155,22 @@ Proof. Opaque g2_eqb. Opaque fp2add. intros p q H H0. unfold g2add. repeat destr
 Qed.
 
 
+(* Work in progress. Ignore below. *)
+
+Lemma fc_always_on_curve: forall p: g1_fc_point, g1_on_curve (g1_from_fc p).
+Proof. intros p. unfold g1_on_curve, g1_from_fc. unfold W.coordinates. destruct p. destruct x.
+- destruct p. unfold fp_eq in y. rewrite y. rewrite fp_eq_ok. field.
+- destruct u. trivial.
+Qed.
+
+Lemma from_and_back: forall p: g1_fc_point, p = g1_to_fc (g1_from_fc p).
+Proof. intros p. unfold g1_to_fc, g1_from_fc. simpl. destruct p. simpl. destruct x.
+- destruct p. unfold fp_eqb. assert (f0 * f0 = f * f * f + fp_four).  
+  { unfold fp_eq in y. rewrite y. unfold fp_four. rewrite fp_eq_ok. field. }
+Admitted.
+  
+
+Lemma stuff: forall p q: g1_fc_point, (p #+# q) #=# (g1_to_fc ((g1_from_fc p) ?+? (g1_from_fc q))).
+Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (fc_always_on_curve p) (fc_always_on_curve q)). intros H. unfold g1_eq in H.
+ destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
+Admitted.
