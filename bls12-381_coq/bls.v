@@ -699,7 +699,7 @@ Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
 Require Import Crypto.Spec.WeierstrassCurve.
 Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
 Require Import Crypto.Util.Decidable Crypto.Util.Tactics.DestructHead Crypto.Util.Tactics.BreakMatch.
-Require Import Blsprime.blsprime.
+Require Import blsprime.
 Require Import Ring.
 Require Export Ring_theory.
 Require Import Setoid.
@@ -925,46 +925,7 @@ Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. des
             rewrite fp_eq_ok; field; unfold fp_eq; intros H1; rewrite sub_eq_zero_means_same in H1; rewrite H1 in E3; rewrite fp_eq_true in E3; discriminate E3.
 Qed.
 
-(*
-Lemma g1_addition_equal2: forall p q: g1, g1_on_curve p -> g1_on_curve q -> (p ?+? q) ?=? (g1_from_fc ((g1_to_fc p) #+# (g1_to_fc q))). 
-Proof. Opaque g1_eqb. intros p q H H0. unfold g1add. destruct p. destruct p. destruct q. 
-  unfold g1_from_fc, g1_to_fc, g1_fc_add. destruct p. unfold g1_eq. simpl. 
-  (generalize fp_field_theory). intros [[]]. unfold g1_on_curve in H. unfold g1_on_curve in H0.
-  assert (fp_zero - f2 = fp_neg f2). {apply fp_eq_ok. field. }
-  destruct (g1_eqb (f, f0, b) (f1, f2, b0)) eqn:E1; destruct (fp_eqb f0 fp_zero) eqn:E2; destruct b; destruct b0; try reflexivity; destruct (g1_dec f2 (fp_neg f0)); simpl.
-  all: try rewrite H0; try rewrite H; repeat rewrite fp_eq_true; try split; try reflexivity. 
-  all: destruct (dec (fp_eq f f1)); try destruct (dec (fp_eq f2 (fp_neg f0))); try reflexivity; try apply same_if_g1_eq in E1 as L1; try simpl in L1; try destruct L1; try contradiction.
-  apply fp_same_if_eq in E2. rewrite E2 in n. assert (fp_neg fp_zero = fp_zero). {apply fp_eq_ok. field. } rewrite H4 in n. rewrite <- E2 in n. symmetry in H3. contradiction.
-  rewrite <- H3 in f3. apply negation_eq_implies_zero in f3. rewrite f3 in E2. rewrite fp_eq_true in E2. discriminate. 
   
-  all: try rewrite H1; simpl; destruct (fp_eqb f f1) eqn:E3; destruct (fp_eqb f0 (fp_neg f2)) eqn:E4; simpl; try apply fp_same_if_eq in E3; try apply fp_same_if_eq in E4; try reflexivity; try contradiction.
-  all: try rewrite H1; try rewrite H2; try split; repeat rewrite exp2ismul; unfold fp_three, fp_two; try apply fp_eq_ok; try field; try split. try congruence; try intros c1; try rewrite c1 in E2; try apply fp_eq_true in E2; try discriminate.
-  apply same_if_g1_eq in E1. simpl in E1. destruct E1. contradiction. try split; try rewrite fp_eq_ok; repeat rewrite exp2ismul; unfold fp_three; unfold fp_two; try field. field.
-  *)  
-  
-
-
-(* Work in progress. Ignore below. *)
-
-Lemma fc_always_on_curve: forall p: g1_fc_point, g1_on_curve (g1_from_fc p).
-Proof. intros p. unfold g1_on_curve, g1_from_fc. unfold W.coordinates. destruct p. destruct x.
-- destruct p. unfold fp_eq in y. rewrite y. rewrite fp_eq_ok. field.
-- destruct u. trivial.
-Qed.
-
-Lemma from_and_back: forall p: g1_fc_point, p = g1_to_fc (g1_from_fc p).
-Proof. intros p. unfold g1_to_fc, g1_from_fc. simpl. destruct p. simpl. destruct x.
-- destruct p. unfold fp_eqb. assert (f0 * f0 = f * f * f + fp_four).  
-  { unfold fp_eq in y. rewrite y. unfold fp_four. rewrite fp_eq_ok. field. }
-Admitted.
-  
-
-Lemma stuff: forall p q: g1_fc_point, (p #+# q) #=# (g1_to_fc ((g1_from_fc p) ?+? (g1_from_fc q))).
-Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (fc_always_on_curve p) (fc_always_on_curve q)). intros H. unfold g1_eq in H.
- destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
-Admitted.
-
-
 
 (* fp2 ring/field stuff*)
 
@@ -1216,3 +1177,24 @@ Proof. Opaque g2_eqb. Opaque fp2add. intros p q H H0. unfold g2add. repeat destr
           ++ split;
             rewrite fp2_eq_ok; field; unfold fp2eq; intros H1; rewrite fp2_sub_eq_zero_means_same in H1; rewrite H1 in E3; rewrite fp2_eq_true in E3; discriminate E3.
 Qed.
+
+
+(* Work in progress. Ignore below. *)
+
+Lemma fc_always_on_curve: forall p: g1_fc_point, g1_on_curve (g1_from_fc p).
+Proof. intros p. unfold g1_on_curve, g1_from_fc. unfold W.coordinates. destruct p. destruct x.
+- destruct p. unfold fp_eq in y. rewrite y. rewrite fp_eq_ok. field.
+- destruct u. trivial.
+Qed.
+
+Lemma from_and_back: forall p: g1_fc_point, p = g1_to_fc (g1_from_fc p).
+Proof. intros p. unfold g1_to_fc, g1_from_fc. simpl. destruct p. simpl. destruct x.
+- destruct p. unfold fp_eqb. assert (f0 * f0 = f * f * f + fp_four).  
+  { unfold fp_eq in y. rewrite y. unfold fp_four. rewrite fp_eq_ok. field. }
+Admitted.
+  
+
+Lemma stuff: forall p q: g1_fc_point, (p #+# q) #=# (g1_to_fc ((g1_from_fc p) ?+? (g1_from_fc q))).
+Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (fc_always_on_curve p) (fc_always_on_curve q)). intros H. unfold g1_eq in H.
+ destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
+Admitted.
