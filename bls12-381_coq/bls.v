@@ -1179,22 +1179,3 @@ Proof. Opaque g2_eqb. Opaque fp2add. intros p q H H0. unfold g2add. repeat destr
 Qed.
 
 
-(* Work in progress. Ignore below. *)
-
-Lemma fc_always_on_curve: forall p: g1_fc_point, g1_on_curve (g1_from_fc p).
-Proof. intros p. unfold g1_on_curve, g1_from_fc. unfold W.coordinates. destruct p. destruct x.
-- destruct p. unfold fp_eq in y. rewrite y. rewrite fp_eq_ok. field.
-- destruct u. trivial.
-Qed.
-
-Lemma from_and_back: forall p: g1_fc_point, p = g1_to_fc (g1_from_fc p).
-Proof. intros p. unfold g1_to_fc, g1_from_fc. simpl. destruct p. simpl. destruct x.
-- destruct p. unfold fp_eqb. assert (f0 * f0 = f * f * f + fp_four).  
-  { unfold fp_eq in y. rewrite y. unfold fp_four. rewrite fp_eq_ok. field. }
-Admitted.
-  
-
-Lemma stuff: forall p q: g1_fc_point, (p #+# q) #=# (g1_to_fc ((g1_from_fc p) ?+? (g1_from_fc q))).
-Proof. intros p q. generalize (g1_addition_equal (g1_from_fc p) (g1_from_fc q) (fc_always_on_curve p) (fc_always_on_curve q)). intros H. unfold g1_eq in H.
- destruct (g1_from_fc p ?+? g1_from_fc q) eqn:E. destruct b.
-Admitted.
