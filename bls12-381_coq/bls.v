@@ -6,8 +6,8 @@ The fiat-crypto Weierstrass curve specification can be found here: https://githu
 The file contains all needed steps, for specifying a translation between the hacspec specification and the fiat-crypto one, as well as a the final proof, showing equivalence *)
 
 
-Require Import Lib.
-Require Import IntTypes.
+Require Import bls12_381.Lib.
+Require Import bls12_381.IntTypes.
 From Coq Require Import ZArith.
 Require Import List. Import ListNotations.
 Open Scope hacspec_scope.
@@ -70,7 +70,6 @@ Coercion Z.of_N : N >-> Z.
           m_0) (n_1)))) then (
     most_significant_bit (m_0) ((n_1) - (usize 1))) else (n_1). *)
 
-Check add.
 
 Definition fp_add := add prime.
 Definition fp_sub := sub prime.
@@ -699,7 +698,7 @@ Definition pairing (p_312 : g1) (q_313 : g2) : fp12 :=
 Require Import Crypto.Spec.WeierstrassCurve.
 Require Import Crypto.Algebra.Field Crypto.Algebra.Hierarchy.
 Require Import Crypto.Util.Decidable Crypto.Util.Tactics.DestructHead Crypto.Util.Tactics.BreakMatch.
-Require Import blsprime.
+Require Import bls12_381.blsprime.
 Require Import Ring.
 Require Export Ring_theory.
 Require Import Setoid.
@@ -772,7 +771,6 @@ Proof. intros pos. destruct pos.
 - intros H. left. reflexivity.
 Qed.
 
-About Ring.char_ge.
 
 Lemma fp_char_ge:  @Ring.char_ge fp fp_eq fp_zero fp_one fp_neg fp_add fp_sub fp_mul (BinNat.N.succ_pos BinNat.N.two).
 Proof. 

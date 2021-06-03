@@ -6,7 +6,7 @@ From Coq Require Import ZArith Vector.
 (* Require Import Int.PArray. *)
 (* From Coq Require Import Numbers.Cyclic.Abstract.CyclicAxioms. *)
 
-Require Import IntTypes.
+Require Import bls12_381.IntTypes.
 
 
 Definition uint_size := nat.
